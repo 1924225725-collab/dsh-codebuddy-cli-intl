@@ -1,0 +1,8 @@
+node_modules/
+.preview/
+research/
+.env
+.env.*
+*.log
+*.tgz
+!releases/*.tgz

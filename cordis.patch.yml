@@ -1,0 +1,3 @@
+- insert:
+    - id: llm-codebuddy-cli-intl
+      name: dsh-codebuddy-cli-intl
