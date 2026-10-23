@@ -1,6 +1,6 @@
 # 更新记录 / Changelog
 
-## [0.1.3](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.3)
+## [0.1.3](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/tree/v0.1.3)
 
 - 按国内版 0.3.0 的通用修复逐项对照移植，保留国际 CLI 的 `public` 环境、International Site 登录、`codebuddy.ai` 服务入口、独立配置目录、插件 ID 与本机日志目录。
 - 多个完整协议结果只有在交付文字及有序工具名称/最终参数完全一致时才去重为一份；不选择最后方案、不合并冲突，也不删除单一计划内部的重复调用。

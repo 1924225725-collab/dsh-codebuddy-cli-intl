@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · **English**
 
-[Download 0.1.3](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.3/dsh-codebuddy-cli-intl-0.1.3.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [Installation](docs/INSTALL.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
+[Download 0.1.3](https://raw.githubusercontent.com/1924225725-collab/dsh-codebuddy-cli-intl/main/releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [Installation](docs/INSTALL.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
 
 Use models available to your international account in DeepSeek Harness (DSH) through the official CodeBuddy CLI running locally. The adapter translates model requests and results; DSH continues to manage conversations, permissions and tool execution. It runs no relay server and does not import WorkBuddy desktop credentials.
 

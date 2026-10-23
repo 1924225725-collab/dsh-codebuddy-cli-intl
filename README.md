@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.en.md)
 
-[下载 0.1.3 安装包](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.3/dsh-codebuddy-cli-intl-0.1.3.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [安装教程](docs/安装教程.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
+[下载 0.1.3 安装包](https://raw.githubusercontent.com/1924225725-collab/dsh-codebuddy-cli-intl/main/releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [安装教程](docs/安装教程.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
 
 在 DeepSeek Harness（DSH）中，使用本机官方 CodeBuddy CLI 的国际站账号可用模型。插件负责转换模型请求和结果，DSH 继续管理对话、权限和工具执行。插件没有中转服务器，也不导入 WorkBuddy 桌面凭据。
 
