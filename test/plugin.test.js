@@ -21,6 +21,10 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   assert.equal(Config.shape.model.fallback, '')
   assert.equal(Config.shape.effort.fallback, '')
   const directory = await mkdtemp(path.join(tmpdir(), 'dsh-plugin-test-'))
+  const stateKey = process.platform === 'win32' ? 'LOCALAPPDATA' : process.platform === 'darwin' ? 'HOME' : 'XDG_STATE_HOME'
+  const oldStateRoot = process.env[stateKey]
+  process.env[stateKey] = directory
+  t.after(() => { if (oldStateRoot === undefined) delete process.env[stateKey]; else process.env[stateKey] = oldStateRoot })
   const binDirectory = process.platform === 'win32'
     ? path.join(directory, 'node_modules', '@tencent-ai', 'codebuddy-code', 'bin') : directory
   await mkdir(binDirectory, { recursive: true })
@@ -97,6 +101,12 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const origin = `http://127.0.0.1:${server.address().port}`
+  const logAction = async (action, extra = {}) => {
+    const response = await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/diagnostics`, {
+      method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', 'X-DSH-CodeBuddy-Action': '1', ...extra }, body: JSON.stringify({ action })
+    })
+    return { status: response.status, body: await response.json() }
+  }
   const status = await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/status`)).json()
   assert.equal(status.catalog.models.length, 2)
   assert.equal(status.pluginVersion, JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version)
@@ -130,12 +140,47 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:fenced-tool' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) recovered.push(chunk)
   assert.equal(recovered.at(-1).reason.kind, 'tool-calls')
   assert.deepEqual(JSON.parse(recovered.find(x => x.type === 'block-end').block.arguments), { target: 'sandbox.txt' })
+  const annotated = []
+  for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:annotated-tool' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) annotated.push(chunk)
+  assert.equal(annotated.at(-1).reason.kind, 'tool-calls')
+  assert.equal(annotated.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 1)
+  // Synthetic T11 boundary: the tool result has already arrived. Recover only
+  // the final text, without replaying a model request or yielding any new tool.
+  const requestCount = async () => (await readFile(path.join(binDirectory, 'requests.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse).filter(x => x.args).length
+  const beforeDuplicate = await requestCount()
+  const duplicate = []
+  for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:duplicate-tool' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) duplicate.push(chunk)
+  assert.equal(await requestCount() - beforeDuplicate, 1, 'duplicate recovery must not invoke the CLI again')
+  assert.equal(duplicate.at(-1).reason.kind, 'tool-calls')
+  assert.equal(duplicate.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 1, 'a repeated complete reply must be delivered once')
+  const duplicateLog = (await logAction('exportLogs')).body.entries.at(-1)
+  assert.equal(duplicateLog.responseDiagnostics.duplicateProtocolCandidates, 1)
+  assert.ok(duplicateLog.responseDiagnostics.normalizations.includes('duplicate-protocol-result'))
+  const beforeFinalReply = await requestCount()
+  const finalReply = []
+  for await (const chunk of adapter.stream({ model: 'future-alpha', tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }], messages: [
+    { role: 'user', content: 'response-case:malformed-final-text' },
+    { role: 'assistant', content: [{ type: 'tool-call', id: 'already-done', name: 'read_test', arguments: '{}' }] },
+    { role: 'tool', toolCallId: 'already-done', content: '5; exit=0', isError: false }
+  ] })) finalReply.push(chunk)
+  assert.equal(await requestCount() - beforeFinalReply, 1, 'final text recovery must not retry the CLI')
+  assert.equal(finalReply.at(-1).reason.kind, 'stop')
+  assert.equal(finalReply.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 0)
+  assert.equal(finalReply.find(x => x.type === 'block-end' && x.block.type === 'text').block.text, '输出 5\n退出码 0；路径 C:\\project\\demo')
+  const recoveredLog = (await logAction('exportLogs')).body.entries.at(-1)
+  assert.ok(recoveredLog.responseDiagnostics.normalizations.includes('text-string-escape-recovery'))
+  assert.equal(JSON.stringify(recoveredLog).includes('project'), false)
+  assert.equal((await logAction('armCapture')).body.logs.captureArmed, true)
   const beforeFailures = (await readFile(path.join(binDirectory, 'requests.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse).filter(x => x.args).length
-  for (const variant of ['truncated', 'wrong-shape', 'truncated', 'wrong-shape', 'truncated', 'wrong-shape']) {
+  const reportedFailures = []
+  for (const variant of ['truncated', 'wrong-shape', 'ambiguous', 'wrong-shape', 'truncated', 'wrong-shape']) {
     const delivered = []
     await assert.rejects(async () => {
       for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: `response-case:${variant}` }] })) delivered.push(chunk)
-    }, error => error.code === 'STRUCTURED_OUTPUT_INVALID' && error.message.includes(variant === 'truncated' ? 'possibly-truncated-json' : 'invalid-text-field'))
+    }, error => {
+      reportedFailures.push(error.failure)
+      return error.code === 'STRUCTURED_OUTPUT_INVALID' && error.message.includes(variant === 'truncated' ? 'possibly-truncated-json' : variant === 'ambiguous' ? 'ambiguous-json' : 'invalid-text-field')
+    })
     assert.deepEqual(delivered, [], 'invalid replies cannot deliver partial blocks')
   }
   const afterFailures = (await readFile(path.join(binDirectory, 'requests.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse).filter(x => x.args).length
@@ -148,6 +193,52 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   assert.equal(history.usage.recentFailures[0].responseDiagnostics.reason, 'invalid-text-field')
   assert.equal(history.usage.recentFailures[1].responseDiagnostics.reason, 'possibly-truncated-json')
   assert.equal(JSON.stringify(history).includes('PRIVATE_FAILED_REPLY'), false)
+  assert.equal(history.logs.captureArmed, false)
+  assert.equal(history.logs.samples, 1)
+  const basic = await logAction('exportLogs')
+  assert.equal(basic.status, 200)
+  assert.equal(basic.body.entries[0].processDiagnostics.exitCode, 0)
+  assert.ok(basic.body.entries[0].processDiagnostics.stdoutBytes > 0)
+  assert.equal(JSON.stringify(basic.body).includes('PRIVATE_FAILED_REPLY'), false)
+  assert.equal(basic.body.entries.filter(x => x.state === 'error').length, 6)
+  const failureEntries = basic.body.entries.filter(x => x.state === 'error')
+  assert.equal(new Set(reportedFailures.map(x => x.requestId)).size, 6)
+  assert.deepEqual(reportedFailures.map(x => x.requestId), failureEntries.map(x => x.id))
+  assert.ok(reportedFailures.every(x => x.code === 'STRUCTURED_OUTPUT_INVALID' && x.message.includes(x.requestId)))
+  const detail = await logAction('exportDetailedLogs')
+  assert.equal(detail.body.entries.filter(x => x.sample).length, 1)
+  assert.equal(detail.body.entries.find(x => x.sample).sample.head, '{"text":"PRIVATE_FAILED_REPLY')
+  const ordinaryView = await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/diagnostics`)).json()
+  assert.equal(JSON.stringify(ordinaryView).includes('PRIVATE_FAILED_REPLY'), false)
+  for (const action of ['armCapture', 'cancelCapture', 'clearLogs', 'exportLogs', 'exportDetailedLogs']) {
+    assert.equal((await logAction(action, { Origin: 'https://external.example' })).status, 403)
+    assert.equal((await logAction(action, { 'X-DSH-CodeBuddy-Action': '' })).status, 403)
+  }
+  assert.equal((await logAction('arbitrary-command')).status, 400)
+  assert.equal((await logAction('clearLogs')).body.logs.entries, 0)
+  assert.equal((await logAction('exportDetailedLogs')).body.entries.length, 0)
+  await logAction('armCapture')
+  for (const [variant, code] of [['auth-required', 'CLI_AUTH_REQUIRED'], ['empty-output', 'CLI_OUTPUT_INVALID'], ['non-json', 'CLI_OUTPUT_INVALID']]) {
+    const delivered = []
+    await assert.rejects(async () => {
+      for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: `response-case:${variant}` }] })) delivered.push(chunk)
+    }, error => error.code === code)
+    assert.deepEqual(delivered, [])
+  }
+  const processLog = (await logAction('exportDetailedLogs')).body
+  assert.equal(processLog.entries.length, 3)
+  assert.equal(processLog.entries[0].errorCode, 'CLI_AUTH_REQUIRED')
+  assert.equal(processLog.entries[0].processDiagnostics.exitCode, 0)
+  assert.equal(processLog.entries[0].processDiagnostics.stdoutBytes, 0)
+  assert.ok(processLog.entries[0].processDiagnostics.stderrBytes > 0)
+  assert.equal(processLog.entries[0].captureAttempted, true)
+  assert.equal(JSON.stringify(processLog).includes('PRIVATE_'), false)
+  const paused = adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'pause consumption after first block' }] })
+  assert.equal((await paused.next()).value.type, 'block-start')
+  const pausedStatus = await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/status`)).json()
+  assert.equal(pausedStatus.activeCalls, 0, 'a completed CLI call must not remain active while its consumer is paused')
+  await paused.return()
+  assert.equal((await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/status`)).json()).activeCalls, 0)
 
   const denied = await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/actions`, {
     method: 'POST', headers: { Origin: 'https://other.example', 'Content-Type': 'application/json', 'X-DSH-CodeBuddy-Action': '1' }, body: JSON.stringify({ action: 'setup' })

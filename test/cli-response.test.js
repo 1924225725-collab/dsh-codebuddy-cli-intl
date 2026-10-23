@@ -56,3 +56,52 @@ test('preserves per-model counters for success and failure without summing assis
     return true
   })
 })
+
+test('recognizes authentication notices even with empty stdout and exit 0 without exposing raw notices', () => {
+  const processDiagnostics = { timeoutMs: 10000, elapsedMs: 2500, stdoutBytes: 0, stderrBytes: 200, exitCode: 0, token: 'PRIVATE_TOKEN' }
+  for (const stderr of ['401 Authentication required. Please use /login (PRIVATE_TOKEN)', '\u001b[31m401 Unauthorized, sign in again\u001b[0m PRIVATE_TOKEN']) {
+    assert.throws(() => collectResult('', { stderr, processDiagnostics }), error => {
+      assert.equal(error.code, 'CLI_AUTH_REQUIRED')
+      assert.match(error.message, /\/login/u)
+      assert.equal(error.processDiagnostics.exitCode, 0)
+      assert.equal(error.processDiagnostics.stdoutBytes, 0)
+      assert.equal(JSON.stringify(error).includes('PRIVATE_TOKEN'), false)
+      assert.equal(error.message.includes('PRIVATE_TOKEN'), false)
+      return true
+    })
+  }
+  const valid = JSON.stringify({ result: 'valid reply' })
+  assert.equal(collectResult(valid, { stderr: '401 Authentication required from an earlier recovered attempt' }).result, 'valid reply')
+})
+
+test('classifies fixed CLI notices and distinguishes empty from non-JSON output without retaining bodies', () => {
+  for (const [stdout, stderr, code] of [
+    ['', '', 'CLI_OUTPUT_INVALID'], ['PRIVATE_NON_JSON', '', 'CLI_OUTPUT_INVALID'],
+    ['', '403 Forbidden: access denied PRIVATE_TOKEN', 'CLI_ACCESS_DENIED'],
+    ['', '429 Too many requests PRIVATE_TOKEN', 'CLI_RATE_LIMITED'],
+    ['', "EPERM: operation not permitted, mkdir 'PRIVATE_PATH'", 'CLI_LOCAL_PERMISSION_DENIED'],
+    ['', 'A model quoted an example 401 Authentication required', 'CLI_OUTPUT_INVALID']
+  ]) {
+    assert.throws(() => collectResult(stdout, { stderr }), error => {
+      assert.equal(error.code, code)
+      assert.equal(error.message.includes('PRIVATE'), false)
+      assert.equal(JSON.stringify(error).includes('PRIVATE'), false)
+      return true
+    })
+  }
+  assert.throws(() => collectResult(''), error => error.message.includes('标准输出为空'))
+  assert.throws(() => collectResult('plain'), error => error.message.includes('非 JSON'))
+})
+
+test('carries immutable DSH-compatible failure facts with a diagnostic ID instead of UNKNOWN', () => {
+  const requestId = '9f68b497-ec6a-4cdf-ad81-c2c5384d0583'
+  const error = new CodeBuddyCliError('CLI_AUTH_REQUIRED', 'Synthetic authentication failure', { requestId })
+  assert.equal(Object.getOwnPropertyDescriptor(error, 'code').value, 'CLI_AUTH_REQUIRED')
+  assert.equal(Object.getOwnPropertyDescriptor(error, 'failure').value.code, error.code)
+  assert.equal(error.failure.requestId, requestId)
+  assert.equal(error.failure.status, 401)
+  assert.equal(error.failure.message, error.message)
+  assert.ok(error.message.includes(requestId))
+  assert.ok(Object.isFrozen(error.failure))
+  assert.equal(new CodeBuddyCliError('CLI_TIMEOUT', 'timeout').failure.code, 'CLI_TIMEOUT')
+})

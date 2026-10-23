@@ -22,7 +22,8 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
     }
   }
   const status = {
-    pluginVersion: '0.2.4', timeoutMs: 180000,
+    pluginVersion: '0.1.3', timeoutMs: 180000,
+    logs: { entries: 12, failures: 1, samples: 0, captureArmed: false },
     activeCalls: 0, cliCheck: { state: 'available', version: '9.8.7' }, setup: { state: 'idle' },
     usage: { calls: 12, inputTokens: 170000, outputTokens: 100, uncachedInputTokens: 10000, cacheReadTokens: 150000, cacheWriteTokens: 10000,
       lastCall: { state: 'success', model: 'future-alpha', at: 1000, inputTokens: 1250, outputTokens: 7, uncachedInputTokens: 100, cacheReadTokens: 1100, cacheWriteTokens: 50, durationMs: 2345,
@@ -30,11 +31,23 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
     catalog: { state: 'ready', fetchedAt: 1000, models: [{ id: 'future-alpha', name: 'Future Alpha', multiplier: 0.33, credits: 'x0.33 credits', efforts: [{ id: 'high', name: 'High' }], contextWindow: 1000000 }] }
   }
   const actions = []
+  const logActions = [], downloads = [], blobs = new Map()
   const context = vm.createContext({
     window: { __ModuleLoader__: { load(module) { api = module.factory((name) => { if (name === 'react') return React; throw Error(name) }) } } },
     AbortController, setInterval: () => 1, clearInterval: () => {}, setTimeout: (callback) => { queueMicrotask(callback); return 1 },
     navigator: { clipboard: { writeText: async () => {} } },
+    Blob, URL: { createObjectURL(blob) { blobs.set('blob:fixture', blob); return 'blob:fixture' }, revokeObjectURL() {} },
+    document: { body: { appendChild() {} }, createElement() { return { click() { downloads.push({ href: this.href, filename: this.download, blob: blobs.get(this.href) }) }, remove() {} } } },
     async fetch(url, options = {}) {
+      if (url.endsWith('/diagnostics')) {
+        const action = options.method === 'POST' ? JSON.parse(options.body).action : null
+        if (action) { assert.equal(options.headers['X-DSH-CodeBuddy-Action'], '1'); logActions.push(action) }
+        if (action === 'armCapture') status.logs.captureArmed = true
+        if (action === 'cancelCapture') status.logs.captureArmed = false
+        if (action === 'clearLogs') status.logs = { entries: 0, failures: 0, samples: 0, captureArmed: false }
+        const report = { schemaVersion: 1, entries: [{ state: 'error', ...(action === 'exportDetailedLogs' ? { sample: { head: '<script>PRIVATE_TEST_REPLY</script>' } } : {}) }] }
+        return { ok: true, json: async () => structuredClone(['armCapture', 'cancelCapture', 'clearLogs'].includes(action) ? status : report) }
+      }
       if (options.method === 'POST') {
         assert.equal(options.headers['X-DSH-CodeBuddy-Action'], '1')
         const action = JSON.parse(options.body).action
@@ -69,7 +82,13 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   assert.ok(text().includes('发送文本 3200 字节'))
   assert.ok(text().includes('CLI 程序可启动'))
   assert.ok(text().includes('不验证账号登录'))
-  assert.ok(text().includes('0.2.4'))
+  assert.ok(text().includes('故障处理与使用指南'))
+  assert.ok(text().includes('最终回复失败不代表之前的工具没有执行'))
+  assert.ok(locales.en.guideTitle.includes('Troubleshooting'))
+  const guideLink = tree.root.findAllByType('a').find(link => link.children.join('') === '查看完整用户指南')
+  assert.ok(guideLink.props.href.endsWith('/docs/使用与故障处理指南.md'))
+  assert.equal(guideLink.props.rel, 'noreferrer')
+  assert.ok(text().includes('0.1.3'))
   const button = (name) => tree.root.findAllByType('button').find((item) => item.children.join('') === name)
   await act(async () => { await button('刷新模型与倍率').props.onClick() })
   assert.ok(text().includes('brand-new-after-update'))
@@ -95,5 +114,39 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   assert.ok(text().includes('markdown-fence'))
   assert.ok(text().includes('最近失败记录'))
   assert.ok(text().includes('JSON 未闭合，可能截断'))
-  assert.ok(text().includes('不保存回复正文'))
+  assert.ok(text().includes('基础诊断不含正文'))
+  assert.ok(text().includes('诊断日志与问题反馈'))
+  assert.equal(button('采集下一次失败回复').props.disabled, true)
+  assert.equal(button('导出详细日志（含原始回复）').props.disabled, true)
+  await act(async () => { await button('查看普通日志').props.onClick() })
+  assert.ok(text().includes('schemaVersion'))
+  assert.equal(text().includes('PRIVATE_TEST_REPLY'), false)
+  await act(async () => { await button('导出普通日志').props.onClick() })
+  assert.ok(downloads[0].filename.startsWith('dsh-codebuddy-basic-'))
+  assert.equal((await downloads[0].blob.text()).includes('PRIVATE_TEST_REPLY'), false)
+  const consent = tree.root.findAllByType('input').find(item => item.props.type === 'checkbox')
+  await act(async () => { consent.props.onChange({ target: { checked: true } }) })
+  await act(async () => { await button('采集下一次失败回复').props.onClick() })
+  assert.ok(text().includes('等待下一次非主动取消的失败'))
+  await act(async () => { await button('取消详细采集').props.onClick() })
+  status.logs.samples = 1
+  await act(async () => { await button('刷新模型与倍率').props.onClick() })
+  await act(async () => { await button('预览详细日志').props.onClick() })
+  assert.ok(text().includes('PRIVATE_TEST_REPLY'))
+  assert.equal(tree.root.findAllByType('script').length, 0)
+  await act(async () => { await button('导出详细日志（含原始回复）').props.onClick() })
+  assert.ok((await downloads[1].blob.text()).includes('PRIVATE_TEST_REPLY'))
+  await act(async () => { await button('清空日志').props.onClick() })
+  assert.equal(logActions.includes('clearLogs'), false)
+  await act(async () => { await button('确认清空全部日志和详细样本').props.onClick() })
+  assert.equal(logActions.includes('clearLogs'), true)
+  assert.equal(text().includes('PRIVATE_TEST_REPLY'), false)
+  assert.equal(button('采集下一次失败回复').props.disabled, true)
+  status.usage.lastCall = { id: '13838045-0be0-4d93-9551-786b43f14ed1', state: 'error', model: 'future-alpha', at: 4000, errorCode: 'CLI_AUTH_REQUIRED', errorMessage: 'CodeBuddy CLI 登录鉴权失败（401）。请执行 /login。', processDiagnostics: { elapsedMs: 2500, stdoutBytes: 0, stderrBytes: 200, exitCode: 0 } }
+  await act(async () => { await button('刷新模型与倍率').props.onClick() })
+  assert.ok(text().includes('CLI_AUTH_REQUIRED'))
+  assert.ok(text().includes('诊断 ID：13838045-0be0-4d93-9551-786b43f14ed1'))
+  const loginDetails = tree.root.findAllByType('details').find(item => item.findAllByType('summary').some(summary => summary.children.join('') === '首次登录或切换账号'))
+  assert.equal(loginDetails.props.open, true)
+  assert.ok(text().includes('CLI 进程诊断'))
 })

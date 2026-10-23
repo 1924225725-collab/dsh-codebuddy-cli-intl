@@ -32,12 +32,22 @@ if (process.argv.includes('--version')) {
   process.stdin.on('data', (chunk) => { input += chunk })
   process.stdin.on('end', () => {
     record({ args: process.argv.slice(2), input })
+    if (input.includes('response-case:auth-required')) { process.stderr.write('401 Authentication required. Please use /login PRIVATE_AUTH_TOKEN'); return }
+    if (input.includes('response-case:empty-output')) return
+    if (input.includes('response-case:non-json')) { process.stdout.write('PRIVATE_NON_JSON'); return }
     const envelope = JSON.parse(input.slice(input.indexOf('{"protocol"')))
     const toolCalls = input.includes('tool-round') && envelope.tools.length && !envelope.messages.some((message) => message.role === 'tool') ? [{ name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }] : []
     let response = JSON.stringify({ text: toolCalls.length ? '' : 'fixture response', toolCalls })
     if (input.includes('response-case:fenced-tool')) response = `\`\`\`json\n${JSON.stringify({ toolCalls: [{ name: envelope.tools[0].name, arguments: JSON.stringify({ target: 'sandbox.txt' }) }] })}\n\`\`\``
     if (input.includes('response-case:truncated')) response = '{"text":"PRIVATE_FAILED_REPLY'
     if (input.includes('response-case:wrong-shape')) response = JSON.stringify({ text: { PRIVATE_FAILED_REPLY: true }, toolCalls: [] })
+    if (input.includes('response-case:malformed-final-text')) response = '{"text":"输出 5\n退出码 0；路径 C:\\project\\demo","toolCalls":[]}'
+    if (input.includes('response-case:annotated-tool')) response = '说明 [阶段一] [阶段二]\n' + JSON.stringify({ text: '', toolCalls: [{ name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }] })
+    if (input.includes('response-case:duplicate-tool')) {
+      const plan = JSON.stringify({ text: '', toolCalls: [{ name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }] })
+      response = plan + '\n' + plan
+    }
+    if (input.includes('response-case:ambiguous')) response = [JSON.stringify({ text: 'PRIVATE_FAILED_REPLY', toolCalls: [] }), JSON.stringify({ text: 'conflicting reply', toolCalls: [] })].join('\n')
     console.log(JSON.stringify([
       { type: 'system', subtype: 'init' },
       { type: 'result', subtype: 'success', result: response, usage: { input_tokens: 11, output_tokens: 7, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 } }

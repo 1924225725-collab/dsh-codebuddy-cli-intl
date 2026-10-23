@@ -41,7 +41,7 @@ test('fresh setup downloads the official installer, verifies the installed CLI, 
   let executed = false
   const result = await ensureCli({}, {
     inspect: async () => { if (++checks === 1) throw new CodeBuddyCliError('CLI_NOT_FOUND', 'missing'); return { path: '/new/cli', version: '2.3.4' } },
-    fetchImpl: async (url) => { assert.match(url, /^https:\/\/www\.codebuddy\.cn\/cli\/install\.(ps1|sh)$/u); return new Response('# official fixture installer') },
+    fetchImpl: async (url) => { assert.match(url, /^https:\/\/copilot\.tencent\.com\/cli\/install\.(ps1|sh)$/u); return new Response('# official fixture installer') },
     run: async (command, args) => {
       installer = args.at(-1)
       assert.equal(await readFile(installer, 'utf8'), '# official fixture installer')
