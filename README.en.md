@@ -2,19 +2,19 @@
 
 [简体中文](README.md) · **English**
 
-[Download 0.1.3](https://raw.githubusercontent.com/1924225725-collab/dsh-codebuddy-cli-intl/main/releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.3.tgz) · [Installation](docs/INSTALL.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
+[Download 0.1.4](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.4/dsh-codebuddy-cli-intl-0.1.4.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.4.tgz) · [Installation](docs/INSTALL.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
 
 Use models available to your international account in DeepSeek Harness (DSH) through the official CodeBuddy CLI running locally. The adapter translates model requests and results; DSH continues to manage conversations, permissions and tool execution. It runs no relay server and does not import WorkBuddy desktop credentials.
 
-## What changed in 0.1.3
+## What changed in 0.1.4
 
-- Tighten handling of complete replies, multiple fragments, plain text and text escapes. Missing content is never invented; formatting failures do not trigger retries or replay completed tools.
-- Deliver identical complete replies once only when their text and ordered tool payloads match exactly. Conflicting plans remain blocked.
-- Classify empty CLI output, sign-in, permission and rate-limit failures. Preserve DSH error codes, diagnostic IDs and tool failure flags.
-- Add bilingual troubleshooting inside settings and local diagnostic logs. Raw reply capture is off until explicitly enabled.
-- All 55 synthetic automated checks pass. This release made no new live account or model requests.
+- Use native JSON Schema output from the official CLI and read `structured_output` only from a unique final record. DSH still manages conversations and tool execution.
+- Validate the exact response shape, DSH tool allowlist and object arguments. Missing output, invalid structures or a non-unique final record fail explicitly; free text and `result` are never fallback sources.
+- The adapter starts one CLI process per DSH request, with up to four internal structured-processing rounds. One invocation does not mean one model inference or fixed usage; check official usage details.
+- Show native output mode and final-record count in status/diagnostics; retain separate international configuration, timeout/cancellation and log privacy controls.
+- All 63 synthetic automated checks pass. The new route has not been live-tested with an international model.
 
-International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.3. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
+International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.4. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
 
 ## Install and sign in
 
@@ -33,7 +33,7 @@ To inspect a raw reply, read the notice and explicitly arm one-failure capture i
 
 ## Interface previews
 
-These interface images show the layout captured from the 0.1.0 settings component; the troubleshooting guide and diagnostic controls added in 0.1.3 are not shown. Model names, rates and status values are fictional and do not represent an account catalog or balance.
+These interface images show the layout captured from the 0.1.0 settings component; later troubleshooting, diagnostic and native-output status controls are not shown. Model names, rates and status values are fictional and do not represent an account catalog or balance.
 
 ![International settings example](docs/images/ui-setup.png)
 

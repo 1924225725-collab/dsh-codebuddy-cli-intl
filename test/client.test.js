@@ -107,13 +107,13 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   assert.ok(text().includes('CLI_TIMEOUT'))
   assert.ok(text().includes('fixture timeout details'))
   assert.ok(text().includes('标准输出 0 字节'))
-  status.usage.lastCall = { state: 'success', model: 'future-alpha', at: 3000, inputTokens: 1, outputTokens: 2, responseDiagnostics: { reason: 'valid', inputType: 'string', bytes: 50, normalizations: ['markdown-fence'] } }
-  status.usage.recentFailures = [{ at: 2000, model: 'future-alpha', errorCode: 'STRUCTURED_OUTPUT_INVALID', errorMessage: 'synthetic failure', responseDiagnostics: { reason: 'possibly-truncated-json', inputType: 'string', bytes: 25, normalizations: [] } }]
+  status.usage.lastCall = { state: 'success', model: 'future-alpha', at: 3000, inputTokens: 1, outputTokens: 2, responseDiagnostics: { reason: 'valid', outputMode: 'native-json-schema', finalResultCount: 1, inputType: 'object', normalizations: [] } }
+  status.usage.recentFailures = [{ at: 2000, model: 'future-alpha', errorCode: 'CLI_STRUCTURED_OUTPUT_MISSING', errorMessage: 'synthetic failure', responseDiagnostics: { reason: 'native-structured-output-missing', outputMode: 'native-json-schema', finalResultCount: 1, inputType: 'object', normalizations: [] } }]
   await act(async () => { await button('刷新模型与倍率').props.onClick() })
   assert.ok(text().includes('结构有效'))
-  assert.ok(text().includes('markdown-fence'))
+  assert.ok(text().includes('原生 JSON Schema'))
   assert.ok(text().includes('最近失败记录'))
-  assert.ok(text().includes('JSON 未闭合，可能截断'))
+  assert.ok(text().includes('缺少 structured_output'))
   assert.ok(text().includes('基础诊断不含正文'))
   assert.ok(text().includes('诊断日志与问题反馈'))
   assert.equal(button('采集下一次失败回复').props.disabled, true)

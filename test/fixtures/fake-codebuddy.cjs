@@ -37,6 +37,60 @@ if (process.argv.includes('--version')) {
     if (input.includes('response-case:non-json')) { process.stdout.write('PRIVATE_NON_JSON'); return }
     const envelope = JSON.parse(input.slice(input.indexOf('{"protocol"')))
     const toolCalls = input.includes('tool-round') && envelope.tools.length && !envelope.messages.some((message) => message.role === 'tool') ? [{ name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }] : []
+    if (process.argv.includes('--json-schema')) {
+      let structured = { text: toolCalls.length ? '' : 'fixture response', toolCalls }
+      const usage = { input_tokens: 11, output_tokens: 7, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 }
+      if (input.includes('response-case:fenced-tool') || input.includes('response-case:annotated-tool')) {
+        structured = { text: '', toolCalls: [{ name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }] }
+      }
+      if (input.includes('response-case:duplicate-tool')) {
+        const repeated = { name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }
+        structured = { text: '', toolCalls: [repeated, repeated] }
+      }
+      if (input.includes('response-case:malformed-final-text')) {
+        structured = { text: '输出 5\n退出码 0；路径 C:\\project\\demo', toolCalls: [] }
+      }
+      if (input.includes('response-case:native-literal')) {
+        structured = { text: '示例：{"text":"quoted example"} {"toolCalls":[{"name":"read_test","arguments":{}}]}', toolCalls: [] }
+      }
+      if (input.includes('native-route:missing')) {
+        console.log(JSON.stringify({ type: 'result', subtype: 'success', result: JSON.stringify(structured), usage }))
+        return
+      }
+      if (input.includes('response-case:truncated')) {
+        console.log(JSON.stringify({ type: 'result', subtype: 'success', result: '{"text":"PRIVATE_FAILED_REPLY', usage }))
+        return
+      }
+      if (input.includes('response-case:wrong-shape')) {
+        console.log(JSON.stringify({ type: 'result', subtype: 'success', structured_output: { text: { PRIVATE_FAILED_REPLY: true }, toolCalls: [] }, usage }))
+        return
+      }
+      if (input.includes('response-case:ambiguous')) {
+        console.log(JSON.stringify([
+          { type: 'result', subtype: 'success', structured_output: { text: 'first', toolCalls: [] }, usage },
+          { type: 'result', subtype: 'success', structured_output: { text: 'second', toolCalls: [] }, usage }
+        ]))
+        return
+      }
+      if (input.includes('native-route:conflict')) {
+        console.log(JSON.stringify([
+          { type: 'result', subtype: 'success', structured_output: { text: 'first', toolCalls: [] }, usage },
+          { type: 'result', subtype: 'success', structured_output: { text: 'last', toolCalls: [] }, usage }
+        ]))
+        return
+      }
+      if (input.includes('native-route:identical-duplicate')) {
+        const item = { type: 'result', subtype: 'success', structured_output: structured, usage }
+        console.log(JSON.stringify([item, { ...item }, { ...item }]))
+        return
+      }
+      if (input.includes('native-route:cli-error')) {
+        console.log(JSON.stringify({ type: 'result', subtype: 'error_during_execution', is_error: true, structured_output: structured, usage }))
+        return
+      }
+      console.log(JSON.stringify({ type: 'result', subtype: 'success', structured_output: structured, result: 'human-readable CLI summary must not replace structured_output', usage }))
+      return
+    }
     let response = JSON.stringify({ text: toolCalls.length ? '' : 'fixture response', toolCalls })
     if (input.includes('response-case:fenced-tool')) response = `\`\`\`json\n${JSON.stringify({ toolCalls: [{ name: envelope.tools[0].name, arguments: JSON.stringify({ target: 'sandbox.txt' }) }] })}\n\`\`\``
     if (input.includes('response-case:truncated')) response = '{"text":"PRIVATE_FAILED_REPLY'

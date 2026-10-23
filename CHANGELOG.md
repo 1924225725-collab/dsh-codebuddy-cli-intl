@@ -1,5 +1,19 @@
 # 更新记录 / Changelog
 
+## [0.1.4](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.4)
+
+- 将模型响应改为官方 CLI `--json-schema` 与 `StructuredOutput` 路线，只读取唯一最终结果记录的 `structured_output`。CLI 业务工具关闭，MCP 配置为空；DSH 继续负责工具执行。
+- 严格校验 `{ text, toolCalls }` 和对象型工具参数。缺少结构结果、结构无效、CLI 报错或最终结果记录不是唯一一条时明确失败；相同内容的多条最终记录也不合并。单份计划内部的重复工具调用按原顺序保留。
+- 适配器每个请求只启动一次 CLI，不会自动追加修复请求或重放已完成工具；CLI 内部最多 4 轮结构化处理。一次 CLI 调用不保证一次模型推理或固定用量，实际消耗以官方明细为准。
+- 配置页和基础日志标明 `native-json-schema` 输出模式与最终记录数；保留 CLI 进程诊断、超时、取消、日志隐私和国际版独立配置/登录。
+- 63 项合成自动检查通过。本版未使用国际版真实模型验证新的结构化输出路线；国内版测试不作为国际模型验证证据。
+
+- Move model responses to the official CLI `--json-schema` and `StructuredOutput` route, consuming `structured_output` only from a unique final result record. CLI business tools stay disabled and MCP is empty; DSH continues to execute tools.
+- Strictly validate `{ text, toolCalls }` and object-valued tool arguments. Missing native output, invalid structures, CLI errors or any non-unique final-record count fail explicitly; identical duplicate records are not merged. Repeated calls inside one plan remain in order.
+- The adapter starts one CLI process per request and does not append a repair request or replay completed tools. The CLI may use up to four internal structured-processing rounds. One CLI invocation does not guarantee one model inference or fixed usage; official usage details are authoritative.
+- Show `native-json-schema` mode and final-record count in status/diagnostics; retain process diagnostics, timeout, cancellation, log privacy and separate international configuration/sign-in.
+- All 63 synthetic automated checks pass. This release did not live-test the new structured-output route with an international model; China-version tests are not evidence of international model behavior.
+
 ## [0.1.3](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/tree/v0.1.3)
 
 - 按国内版 0.3.0 的通用修复逐项对照移植，保留国际 CLI 的 `public` 环境、International Site 登录、`codebuddy.ai` 服务入口、独立配置目录、插件 ID 与本机日志目录。

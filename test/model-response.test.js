@@ -1,10 +1,31 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseModelResponse } from '../lib/model-response.js'
+import { parseModelResponse, parseStructuredResponse } from '../lib/model-response.js'
 
 const envelope = { text: 'hello', toolCalls: [] }
 const tool = { name: 'edit_demo' }
 const toolEnvelope = { text: '', toolCalls: [{ name: tool.name, arguments: { content: 'quoted "text"\nC:\\demo\\file.txt { [ ] }' } }] }
+
+test('native structured results preserve literal text and repeated DSH calls without scanning examples', () => {
+  const text = 'C:\\fictional\\sample\n{"text":"example"} {"toolCalls":[]}'
+  const value = { text, toolCalls: [toolEnvelope.toolCalls[0], toolEnvelope.toolCalls[0]] }
+  const parsed = parseStructuredResponse(value, [tool])
+  assert.equal(parsed.text, text)
+  assert.equal(parsed.calls.length, 2)
+  assert.equal(parsed.responseDiagnostics.outputMode, 'native-json-schema')
+  assert.deepEqual(parsed.responseDiagnostics.normalizations, [])
+})
+
+test('native structured mode rejects strings, wrappers, partial and extra protocol fields', () => {
+  for (const value of [JSON.stringify(envelope), 'plain text', '{"text":', [envelope], { data: envelope }, { text: 'text only' }, { toolCalls: [] }, { ...envelope, extra: true }]) {
+    assert.throws(() => parseStructuredResponse(value, [tool]), error => error.code === 'STRUCTURED_OUTPUT_INVALID'
+      && error.responseDiagnostics.reason === 'native-envelope'
+      && error.responseDiagnostics.outputMode === 'native-json-schema')
+  }
+  for (const args of ['{}', [], null]) {
+    assert.throws(() => parseStructuredResponse({ text: '', toolCalls: [{ name: tool.name, arguments: args }] }, [tool]), error => error.code === 'TOOL_CALL_INVALID')
+  }
+})
 
 test('accepts exact envelopes and complete wrappers without changing reply or tool arguments', () => {
   const json = JSON.stringify(toolEnvelope)

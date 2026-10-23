@@ -89,7 +89,10 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   assert.equal(calls[3].args.includes('--model'), false)
   assert.equal(calls[3].args.includes('--effort'), false)
   assert.ok(calls.every((call) => call.args.includes('--system-prompt') && !call.args.includes('--append-system-prompt')))
-  assert.ok(calls.every((call) => !call.args.includes('--json-schema')), 'avoid CLI internal structured-output retry calls')
+  assert.ok(calls.every((call) => call.args.includes('--json-schema')))
+  assert.ok(calls.every((call) => call.args[call.args.indexOf('--tools') + 1] === 'StructuredOutput'))
+  assert.ok(calls.every((call) => call.args[call.args.indexOf('--max-turns') + 1] === '4'))
+  assert.ok(calls.every((call) => JSON.parse(call.args[call.args.indexOf('--mcp-config') + 1]).mcpServers))
   assert.ok(calls.every((call) => JSON.parse(call.input.slice(call.input.indexOf('{"protocol"'))).responseSchema))
   assert.ok(records.filter((record) => record.method).every((record) => ['initialize', 'session/new'].includes(record.method)))
 
@@ -111,6 +114,7 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   assert.equal(status.catalog.models.length, 2)
   assert.equal(status.pluginVersion, JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version)
   assert.equal(status.timeoutMs, 15000)
+  assert.equal(status.responseMode, 'native-json-schema')
   assert.equal(status.usage.lastCall.model, 'future-alpha')
   assert.equal(status.usage.calls, 5)
   assert.equal(status.usage.inputTokens, 55)
@@ -134,12 +138,17 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   assert.equal(result.setup.installed, false)
   assert.equal(result.setup.path, executable)
 
-  // Exercise recovery through the full process/adapter boundary, then verify
-  // invalid output never yields partial text/tools or triggers another call.
+  // Exercise the native response boundary. Examples inside text remain text;
+  // invalid structured results never yield partial blocks or trigger retries.
   const recovered = []
   for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:fenced-tool' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) recovered.push(chunk)
   assert.equal(recovered.at(-1).reason.kind, 'tool-calls')
   assert.deepEqual(JSON.parse(recovered.find(x => x.type === 'block-end').block.arguments), { target: 'sandbox.txt' })
+  const literal = []
+  for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:native-literal' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) literal.push(chunk)
+  assert.equal(literal.at(-1).reason.kind, 'stop')
+  assert.equal(literal.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 0)
+  assert.ok(literal.find(x => x.type === 'block-end' && x.block.type === 'text').block.text.includes('{"toolCalls":['))
   const annotated = []
   for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:annotated-tool' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) annotated.push(chunk)
   assert.equal(annotated.at(-1).reason.kind, 'tool-calls')
@@ -150,12 +159,13 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   const beforeDuplicate = await requestCount()
   const duplicate = []
   for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: 'response-case:duplicate-tool' }], tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }] })) duplicate.push(chunk)
-  assert.equal(await requestCount() - beforeDuplicate, 1, 'duplicate recovery must not invoke the CLI again')
+  assert.equal(await requestCount() - beforeDuplicate, 1, 'the adapter invokes the CLI once and does not repair output')
   assert.equal(duplicate.at(-1).reason.kind, 'tool-calls')
-  assert.equal(duplicate.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 1, 'a repeated complete reply must be delivered once')
+  assert.equal(duplicate.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 2, 'repeated calls inside one plan remain in order')
   const duplicateLog = (await logAction('exportLogs')).body.entries.at(-1)
-  assert.equal(duplicateLog.responseDiagnostics.duplicateProtocolCandidates, 1)
-  assert.ok(duplicateLog.responseDiagnostics.normalizations.includes('duplicate-protocol-result'))
+  assert.equal(duplicateLog.responseDiagnostics.outputMode, 'native-json-schema')
+  assert.equal(duplicateLog.responseDiagnostics.finalResultCount, 1)
+  assert.deepEqual(duplicateLog.responseDiagnostics.normalizations, [])
   const beforeFinalReply = await requestCount()
   const finalReply = []
   for await (const chunk of adapter.stream({ model: 'future-alpha', tools: [{ name: 'read_test', parameters: { type: 'object', properties: {} } }], messages: [
@@ -163,12 +173,14 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
     { role: 'assistant', content: [{ type: 'tool-call', id: 'already-done', name: 'read_test', arguments: '{}' }] },
     { role: 'tool', toolCallId: 'already-done', content: '5; exit=0', isError: false }
   ] })) finalReply.push(chunk)
-  assert.equal(await requestCount() - beforeFinalReply, 1, 'final text recovery must not retry the CLI')
+  assert.equal(await requestCount() - beforeFinalReply, 1, 'the adapter does not retry the CLI')
   assert.equal(finalReply.at(-1).reason.kind, 'stop')
   assert.equal(finalReply.filter(x => x.type === 'block-end' && x.block.type === 'tool-call').length, 0)
   assert.equal(finalReply.find(x => x.type === 'block-end' && x.block.type === 'text').block.text, '输出 5\n退出码 0；路径 C:\\project\\demo')
   const recoveredLog = (await logAction('exportLogs')).body.entries.at(-1)
-  assert.ok(recoveredLog.responseDiagnostics.normalizations.includes('text-string-escape-recovery'))
+  assert.equal(recoveredLog.responseDiagnostics.outputMode, 'native-json-schema')
+  assert.equal(recoveredLog.responseDiagnostics.finalResultCount, 1)
+  assert.deepEqual(recoveredLog.responseDiagnostics.normalizations, [])
   assert.equal(JSON.stringify(recoveredLog).includes('project'), false)
   assert.equal((await logAction('armCapture')).body.logs.captureArmed, true)
   const beforeFailures = (await readFile(path.join(binDirectory, 'requests.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse).filter(x => x.args).length
@@ -179,7 +191,8 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
       for await (const chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: `response-case:${variant}` }] })) delivered.push(chunk)
     }, error => {
       reportedFailures.push(error.failure)
-      return error.code === 'STRUCTURED_OUTPUT_INVALID' && error.message.includes(variant === 'truncated' ? 'possibly-truncated-json' : variant === 'ambiguous' ? 'ambiguous-json' : 'invalid-text-field')
+      return variant === 'truncated' ? error.code === 'CLI_STRUCTURED_OUTPUT_MISSING'
+        : error.code === 'STRUCTURED_OUTPUT_INVALID' && error.message.includes(variant === 'ambiguous' ? 'native-final-results' : 'invalid-text-field')
     })
     assert.deepEqual(delivered, [], 'invalid replies cannot deliver partial blocks')
   }
@@ -189,9 +202,10 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   const history = await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/status`)).json()
   assert.equal(history.usage.lastCall.state, 'success')
   assert.equal(history.usage.lastCall.responseDiagnostics.reason, 'valid')
+  assert.equal(history.usage.lastCall.responseDiagnostics.outputMode, 'native-json-schema')
   assert.equal(history.usage.recentFailures.length, 5)
   assert.equal(history.usage.recentFailures[0].responseDiagnostics.reason, 'invalid-text-field')
-  assert.equal(history.usage.recentFailures[1].responseDiagnostics.reason, 'possibly-truncated-json')
+  assert.equal(history.usage.recentFailures[1].responseDiagnostics.reason, 'native-structured-output-missing')
   assert.equal(JSON.stringify(history).includes('PRIVATE_FAILED_REPLY'), false)
   assert.equal(history.logs.captureArmed, false)
   assert.equal(history.logs.samples, 1)
@@ -204,7 +218,8 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   const failureEntries = basic.body.entries.filter(x => x.state === 'error')
   assert.equal(new Set(reportedFailures.map(x => x.requestId)).size, 6)
   assert.deepEqual(reportedFailures.map(x => x.requestId), failureEntries.map(x => x.id))
-  assert.ok(reportedFailures.every(x => x.code === 'STRUCTURED_OUTPUT_INVALID' && x.message.includes(x.requestId)))
+  assert.ok(reportedFailures.every(x => ['STRUCTURED_OUTPUT_INVALID', 'CLI_STRUCTURED_OUTPUT_MISSING'].includes(x.code) && x.message.includes(x.requestId)))
+  assert.deepEqual(reportedFailures.map(x => x.code), ['CLI_STRUCTURED_OUTPUT_MISSING', 'STRUCTURED_OUTPUT_INVALID', 'STRUCTURED_OUTPUT_INVALID', 'STRUCTURED_OUTPUT_INVALID', 'CLI_STRUCTURED_OUTPUT_MISSING', 'STRUCTURED_OUTPUT_INVALID'])
   const detail = await logAction('exportDetailedLogs')
   assert.equal(detail.body.entries.filter(x => x.sample).length, 1)
   assert.equal(detail.body.entries.find(x => x.sample).sample.head, '{"text":"PRIVATE_FAILED_REPLY')
@@ -228,6 +243,7 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   const processLog = (await logAction('exportDetailedLogs')).body
   assert.equal(processLog.entries.length, 3)
   assert.equal(processLog.entries[0].errorCode, 'CLI_AUTH_REQUIRED')
+  assert.equal(processLog.entries[0].pluginVersion, '0.1.4')
   assert.equal(processLog.entries[0].processDiagnostics.exitCode, 0)
   assert.equal(processLog.entries[0].processDiagnostics.stdoutBytes, 0)
   assert.ok(processLog.entries[0].processDiagnostics.stderrBytes > 0)
