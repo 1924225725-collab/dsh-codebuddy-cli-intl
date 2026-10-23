@@ -8,7 +8,7 @@ Use models available to your international account in DeepSeek Harness through t
 
 ## Independent versions
 
-International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins and repositories. This first release is 0.1.0, preserving the verified adapter based on China 0.2.4. It excludes the China 0.2.5 logging/multi-fragment additions. That synchronization is paused; the next international update is reserved for 0.3.0 and is not released.
+International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins and repositories. This first release is 0.1.0, preserving the verified adapter based on China 0.2.4. It excludes the China 0.2.5 logging/multi-fragment additions. That synchronization is paused; the next international update is reserved for 0.1.3 and is not released.
 
 ## Features
 
