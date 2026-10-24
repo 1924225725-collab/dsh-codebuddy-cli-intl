@@ -68,6 +68,20 @@ test('stream error frames classify fixed failures and hide private details befor
   }
 })
 
+test('image error frames and empty streams classify fixed network notices without leaking or accepting later plans', async () => {
+  for (const mode of ['error-network', 'stderr-network']) await assert.rejects(run(mode), error => {
+    assert.equal(error.code, 'CLI_NETWORK_ERROR')
+    assert.equal(error.failure.code, error.code)
+    assert.equal(error.message.includes('PRIVATE_NETWORK'), false)
+    assert.equal(error.message.includes('private.invalid'), false)
+    assert.ok(error.processDiagnostics.stdoutBytes + error.processDiagnostics.stderrBytes > 0)
+    assert.equal(error.failure.status, undefined)
+    assert.equal(Object.hasOwn(error, 'retry'), false)
+    assert.equal(Object.hasOwn(error, 'retryable'), false)
+    return true
+  })
+})
+
 test('cancellation and the request deadline stop the image process without a usable result', async () => {
   const controller = new AbortController()
   const pending = run('hang', { signal: controller.signal })

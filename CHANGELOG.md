@@ -1,5 +1,19 @@
 # 更新记录 / Changelog
 
+## [0.1.8](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.8)
+
+- 增加 `CLI_NETWORK_ERROR` 固定分类：仅当无有效结果且官方 CLI 错误文本符合已知 ECONNRESET、TLS 连接中断或相关 502 模式时命中；鉴权与本地权限分类优先，未知错误仍保留原通用分类。
+- 使用固定安全提示，不暴露 stderr、URL 或凭据；不添加 HTTP 状态或重试标志，不自动重试，也不改动网络、代理、登录或用户配置。图片 JSONL error 帧和空流通过同一分类器处理。
+- 配置页与中英故障指南说明分类只帮助诊断，不能修复网络或证明具体根因；请先核对已完成的 DSH 操作，再自行决定是否重试。
+- 83 项合成自动检查通过，含分类边界、未知示例不误判、有效结果不受 stderr 旧提示影响、适配器无重试与图片 error 帧覆盖。本版没有真实模型请求或用户手动故障注入，不能声称复现了真实网络故障或恢复网络。
+
+## [0.1.8](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.8) — English
+
+- Add the fixed `CLI_NETWORK_ERROR` classification only when no valid result is available and CLI error text matches a known ECONNRESET, TLS disconnect or related 502 pattern. Authentication and local-permission classifications retain precedence; unknown errors keep their generic classification.
+- Return a fixed safe message without exposing stderr, URLs or credentials. Add no HTTP status or retry flag, make no automatic retry, and change no network, proxy, sign-in or user settings. Image JSONL error frames and empty streams use the same classifier.
+- The settings page and bilingual guide clarify that this classification aids diagnosis but cannot repair connectivity or prove a specific root cause. Check completed DSH actions before deciding whether to retry.
+- All 83 synthetic automated checks pass, including classification boundaries, quoted/unknown examples, valid results with stale stderr, no adapter retry and image error-frame coverage. No live model call or manual fault injection was performed; this does not claim to reproduce or restore a real network failure.
+
 ## [0.1.7](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.7)
 
 - 支持读取任意 DSH 工具标准 tool 结果中的图片附件：消息必须带非空 toolCallId，图片必须是 DSH content 中的标准 attachment 引用。没有工具名白名单；只要工具按此格式返回即可，不代表所有第三方工具都已逐个实测。

@@ -93,6 +93,44 @@ test('classifies fixed CLI notices and distinguishes empty from non-JSON output 
   assert.throws(() => collectResult('plain'), error => error.message.includes('非 JSON'))
 })
 
+test('empty stdout plus a known reset or TLS notice is a private network failure even with exit zero', () => {
+  const processDiagnostics = { timeoutMs: 120000, elapsedMs: 4567, stdoutBytes: 0, stderrBytes: 128, exitCode: 0, secret: 'PRIVATE_TOKEN' }
+  for (const stderr of [
+    'Error: read ECONNRESET PRIVATE_TOKEN https://private.invalid/secret',
+    'ECONNRESET: connection reset PRIVATE_TOKEN',
+    'Error: Client network socket disconnected before secure TLS connection was established PRIVATE_TOKEN',
+    'Error: 502 安全连接建立失败：可能被代理拦截（Client network socket disconnected before secure TLS connection was established） PRIVATE_TOKEN',
+    '\u001b[31mAPI Error: 502 安全连接建立失败 PRIVATE_TOKEN\u001b[0m'
+  ]) assert.throws(() => collectStructuredResult('', { stderr, processDiagnostics }), error => {
+    assert.equal(error.code, 'CLI_NETWORK_ERROR')
+    assert.equal(error.failure.code, error.code)
+    assert.deepEqual(error.processDiagnostics, { timeoutMs: 120000, elapsedMs: 4567, stdoutBytes: 0, stderrBytes: 128, exitCode: 0 })
+    assert.equal(JSON.stringify(error).includes('PRIVATE'), false)
+    assert.equal(error.message.includes('private.invalid'), false)
+    assert.equal(error.failure.status, undefined)
+    assert.equal(Object.hasOwn(error, 'retry'), false)
+    assert.equal(Object.hasOwn(error, 'retryable'), false)
+    return true
+  })
+  for (const [stderr, code] of [
+    ['Error: read ECONNRESET PRIVATE_NETWORK\n401 Authentication required PRIVATE_AUTH', 'CLI_AUTH_REQUIRED'],
+    ['Error: connect ECONNRESET PRIVATE_NETWORK\nEACCES: permission denied PRIVATE_PATH', 'CLI_LOCAL_PERMISSION_DENIED']
+  ]) assert.throws(() => collectStructuredResult('', { stderr }), error => error.code === code)
+})
+
+test('network words in valid results or quoted examples never override successful native output or generic failures', () => {
+  const structured_output = { text: 'Example: Error: read ECONNRESET', toolCalls: [] }
+  assert.deepEqual(collectStructuredResult(JSON.stringify({ type: 'result', structured_output }), {
+    stderr: 'Error: read ECONNRESET from an earlier recovered attempt'
+  }).result, structured_output)
+  for (const stderr of [
+    '', 'Unknown failure PRIVATE_TOKEN', 'A model quoted Error: read ECONNRESET',
+    'The example says Client network socket disconnected before secure TLS connection was established',
+    '502 unrelated PRIVATE_TOKEN'
+  ]) assert.throws(() => collectStructuredResult('', { stderr }), error =>
+    error.code === 'CLI_OUTPUT_INVALID' && !error.message.includes('PRIVATE'))
+})
+
 test('carries immutable DSH-compatible failure facts with a diagnostic ID instead of UNKNOWN', () => {
   const requestId = '9f68b497-ec6a-4cdf-ad81-c2c5384d0583'
   const error = new CodeBuddyCliError('CLI_AUTH_REQUIRED', 'Synthetic authentication failure', { requestId })

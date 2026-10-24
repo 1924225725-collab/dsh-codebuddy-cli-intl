@@ -74,6 +74,7 @@ if (process.argv.includes('--version')) {
   process.stdin.on('end', () => {
     record({ args: process.argv.slice(2), input })
     if (input.includes('response-case:auth-required')) { process.stderr.write('401 Authentication required. Please use /login PRIVATE_AUTH_TOKEN'); return }
+    if (input.includes('response-case:network-reset')) { process.stderr.write('Error: 502 安全连接建立失败：可能被代理拦截（Client network socket disconnected before secure TLS connection was established） PRIVATE_NETWORK_TOKEN https://private.invalid/secret'); return }
     if (input.includes('response-case:empty-output')) return
     if (input.includes('response-case:non-json')) { process.stdout.write('PRIVATE_NON_JSON'); return }
     const envelope = JSON.parse(input.slice(input.indexOf('{"protocol"')))

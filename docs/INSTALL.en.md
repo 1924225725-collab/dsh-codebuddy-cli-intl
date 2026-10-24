@@ -1,16 +1,16 @@
-# Installation and usage (International 0.1.7)
+# Installation and usage (International 0.1.8)
 
 [简体中文](安装教程.md) · [Home](../README.en.md) · [Troubleshooting](USER_GUIDE.en.md)
 
 Compatibility is declared for DSH **0.2.1-rc.2** and **0.2.1-rc.3** only; other DSH versions are not claimed.
 
-1. Download the [International 0.1.7 package](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.7/dsh-codebuddy-cli-intl-0.1.7.tgz) and import the `.tgz` through DSH plugin management. Do not import GitHub's source ZIP.
+1. Download the [International 0.1.8 package](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.8/dsh-codebuddy-cli-intl-0.1.8.tgz) and import the `.tgz` through DSH plugin management. Do not import GitHub's source ZIP.
 2. Enable `dsh-codebuddy-cli-intl` and open component `llm-codebuddy-cli-intl` settings. If the page is missing, confirm the plugin is enabled and restart DSH.
 3. Click **Set up CLI**. Existing installations are checked first; otherwise the official international installer or official npm package is used. The setup does not read or import WorkBuddy desktop credentials.
 4. Copy the sign-in command from settings into PowerShell (Terminal on macOS/Linux). Run the CLI, enter `/login`, choose **International Site**, and wait for the CLI to confirm sign-in.
 5. Return to DSH, refresh models/rates and select a model from the international provider. Start with a short prompt in a new conversation and expand the task gradually.
 
-Version 0.1.7 accepts standard DSH tool-result image attachments when a toolCallId is present; see [image-input scope](IMAGE-INPUT.en.md) for model and format limits. The declared DSH compatibility range remains 0.2.1-rc.2 and 0.2.1-rc.3 only.
+Since 0.1.7, standard DSH tool-result image attachments are accepted when a toolCallId is present; see [image-input scope](IMAGE-INPUT.en.md) for model and format limits. Version 0.1.8 safely classifies known CLI network/TLS errors; it cannot repair connectivity or retry automatically. The declared DSH compatibility range remains 0.2.1-rc.2 and 0.2.1-rc.3 only.
 
 The default CLI configuration directory is `~/.dsh-codebuddy-cli-intl` and can be changed in settings. It separates configuration files but does not guarantee isolation of the official CLI system credential store. Use the official sign-in flow when switching accounts.
 

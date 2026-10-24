@@ -31,6 +31,10 @@ if (mode === 'invalid') {
   init(); emit({ type: 'error', error: { message: '401 Unauthorized PRIVATE_SYNTHETIC_AUTH' } })
 } else if (mode === 'error-generic') {
   init(); emit({ type: 'error', error: { message: 'PRIVATE_SYNTHETIC_UNKNOWN_ERROR' } })
+} else if (mode === 'error-network') {
+  init(); emit({ type: 'error', error: { message: 'Error: read ECONNRESET PRIVATE_NETWORK https://private.invalid/secret' } }); emit(result())
+} else if (mode === 'stderr-network') {
+  process.stderr.write('Error: Client network socket disconnected before secure TLS connection was established PRIVATE_NETWORK https://private.invalid/secret')
 } else if (mode === 'string') {
   init(); emit(result('not an object'))
 } else if (mode === 'hang') {

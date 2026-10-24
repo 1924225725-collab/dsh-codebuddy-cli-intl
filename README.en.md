@@ -2,9 +2,15 @@
 
 [简体中文](README.md) · **English**
 
-[Download 0.1.7](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.7/dsh-codebuddy-cli-intl-0.1.7.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.7.tgz) · [Installation](docs/INSTALL.en.md) · [Image input](docs/IMAGE-INPUT.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
+[Download 0.1.8](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.8/dsh-codebuddy-cli-intl-0.1.8.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.8.tgz) · [Installation](docs/INSTALL.en.md) · [Image input](docs/IMAGE-INPUT.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
 
 Use models available to your international account in DeepSeek Harness (DSH) through the official CodeBuddy CLI running locally. The adapter translates model requests and results; DSH continues to manage conversations, permissions and tool execution. It runs no relay server and does not import WorkBuddy desktop credentials.
+
+## CLI network error classification in 0.1.8
+
+- When no valid model result is available and official CLI error text clearly reports a reset connection, failed TLS setup or related 502, the adapter reports `CLI_NETWORK_ERROR` instead of a generic response-format error.
+- The user sees a fixed safe message; raw stderr, URLs and credentials are not exposed. The plugin does not change network, proxy or sign-in settings and does not retry automatically.
+- The settings guide and bilingual troubleshooting pages explain that classification aids diagnosis but cannot restore connectivity or prove the root cause. All 83 synthetic automated checks pass; this release made no model request and did not reproduce a real network failure.
 
 ## Tool-result images in 0.1.7
 
@@ -27,7 +33,7 @@ Use models available to your international account in DeepSeek Harness (DSH) thr
 
 **Historical validation scope:** The 0.1.5 release passed 77 synthetic automated checks. On 2026-10-24, the actual adapter and International CLI passed a text control and synthetic 360x240 six-color image recognition using deepseek-v4.1-flash, with no DSH business tools executed. The gpt-5.6-luna text control returned `CLI_OUTPUT_INVALID`; no image was sent. The 0.1.7 tool-result image route was tested with synthetic adapter fixtures, with no new model request and no acceptance test of actual DSH screenshot tools or upload UI. Not all models were verified. Live calls require valid International CLI sign-in and model access.
 
-International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.7. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
+International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.8. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
 
 ## Install and sign in
 

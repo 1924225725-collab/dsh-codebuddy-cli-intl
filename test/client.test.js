@@ -22,7 +22,7 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
     }
   }
   const status = {
-    pluginVersion: '0.1.7', timeoutMs: 180000,
+    pluginVersion: '0.1.8', timeoutMs: 180000,
     logs: { entries: 12, failures: 1, samples: 0, captureArmed: false },
     activeCalls: 0, cliCheck: { state: 'available', version: '9.8.7' }, setup: { state: 'idle' },
     usage: { calls: 12, inputTokens: 170000, outputTokens: 100, uncachedInputTokens: 10000, cacheReadTokens: 150000, cacheWriteTokens: 10000,
@@ -90,7 +90,9 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   const guideLink = tree.root.findAllByType('a').find(link => link.children.join('') === '查看完整用户指南')
   assert.ok(guideLink.props.href.endsWith('/docs/使用与故障处理指南.md'))
   assert.equal(guideLink.props.rel, 'noreferrer')
-  assert.ok(text().includes('0.1.7'))
+  assert.ok(text().includes('0.1.8'))
+  assert.ok(text().includes('CLI_NETWORK_ERROR'))
+  assert.ok(text().includes('不能修复网络'))
   const button = (name) => tree.root.findAllByType('button').find((item) => item.children.join('') === name)
   await act(async () => { await button('刷新模型与倍率').props.onClick() })
   assert.ok(text().includes('brand-new-after-update'))

@@ -2,9 +2,15 @@
 
 **简体中文** · [English](README.en.md)
 
-[下载 0.1.7 安装包](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.7/dsh-codebuddy-cli-intl-0.1.7.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.7.tgz) · [安装教程](docs/安装教程.md) · [图片输入说明](docs/IMAGE-INPUT.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
+[下载 0.1.8 安装包](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.8/dsh-codebuddy-cli-intl-0.1.8.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.8.tgz) · [安装教程](docs/安装教程.md) · [图片输入说明](docs/IMAGE-INPUT.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
 
 在 DeepSeek Harness（DSH）中，使用本机官方 CodeBuddy CLI 的国际站账号可用模型。插件负责转换模型请求和结果，DSH 继续管理对话、权限和工具执行。插件没有中转服务器，也不导入 WorkBuddy 桌面凭据。
+
+## 0.1.8 CLI 网络错误识别
+
+- 当无有效模型结果且官方 CLI 错误文本明确包含连接重置、TLS 建立失败或相关 502 时，显示 `CLI_NETWORK_ERROR`，不再误报为普通响应格式错误。
+- 使用固定安全提示，不展示原始 stderr、URL 或凭据；插件不会改网络、代理或登录设置，也不会自动重试。
+- 配置页与中英故障指南说明该分类只能帮助定位，不能恢复网络或证明具体根因。83 项合成自动检查通过；本版没有发起模型请求，也未复现真实网络故障。
 
 ## 0.1.7 工具结果图片
 
@@ -27,7 +33,7 @@
 
 **历史验证范围：**0.1.5 的 77 项合成自动检查通过。2026-10-24 使用实际适配器和国际 CLI 对 deepseek-v4.1-flash 完成文字对照及合成 360×240 六色图片识别，均通过且未执行 DSH 业务工具；gpt-5.6-luna 文字对照返回 `CLI_OUTPUT_INVALID`，没有发送图片。0.1.7 对工具结果图片的验证为合成适配器测试，没有发起新模型请求，也没有验收实际 DSH 工具截图或上传界面。未验证所有模型；实际调用仍需有效的国际版 CLI 登录和所选模型权限。
 
-国际版和[国内版](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn)是独立插件，使用独立提供方 ID、区域入口与 CLI 配置目录。国际版版本号独立：当前为 0.1.7；补丁版本递增至 0.1.9 后，下一版使用 0.2.0，不生成 0.1.10。
+国际版和[国内版](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn)是独立插件，使用独立提供方 ID、区域入口与 CLI 配置目录。国际版版本号独立：当前为 0.1.8；补丁版本递增至 0.1.9 后，下一版使用 0.2.0，不生成 0.1.10。
 
 ## 安装与登录
 

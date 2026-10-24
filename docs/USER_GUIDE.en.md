@@ -2,7 +2,7 @@
 
 [简体中文](使用与故障处理指南.md) · [Installation](INSTALL.en.md) · [Home](../README.en.md)
 
-For International 0.1.7. Plugin settings contain an offline-readable troubleshooting summary. This page provides the full guide.
+For International 0.1.8. Plugin settings contain an offline-readable troubleshooting summary. This page provides the full guide.
 
 ## Check the failure stage before retrying
 
@@ -21,6 +21,7 @@ The adapter converts model replies into DSH text and tool requests. DSH executes
 | Final failure after successful command output | A tool completed, but the following summary or next-step response failed | Check output, exit codes and files. If only the summary is missing, explicitly request a summary of existing results without repeating operations |
 | Changed quotes, code or backslashes | The model may add/remove escaping or alter literal content | Ask for only the affected small block and compare characters. The adapter never unescapes every valid text field a second time; verify content before executing it |
 | `CLI_AUTH_REQUIRED` / 401 | Official CLI sign-in or authorization expired | Copy the sign-in command from settings, run `/login`, choose **International Site**, then verify one short request. The plugin cannot restore account rights or credits |
+| `CLI_NETWORK_ERROR` | No valid result is available and CLI error text matches a known connection-reset, TLS-handshake or related 502 pattern | Check connectivity to the official CodeBuddy International service and your proxy settings. This classification recognizes known CLI text only; it cannot repair connectivity or prove the cause. The plugin does not retry automatically. Check completed DSH actions before deciding whether to retry |
 | `CLI_TIMEOUT` | The total CLI deadline expired, including startup, model processing and process exit | Split the task, check connectivity/service status, and adjust the deadline if needed. A longer deadline cannot resolve conflicting JSON plans |
 | `IMAGE_MODEL_UNSUPPORTED` | The selected model is not explicitly marked image-capable by the catalog | Refresh the catalog and choose a model marked image-capable. Undeclared support fails explicitly; the image is not silently dropped |
 | `IMAGE_OFFLOAD_REQUIRED` or `IMAGE_TOO_LARGE` | Image count, aggregate Base64 or a converted image exceeds the adapter limit | Reduce or resize images; start a shorter conversation if needed. Images already offloaded by DSH are not resent |
