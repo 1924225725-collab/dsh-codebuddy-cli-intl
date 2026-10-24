@@ -1,4 +1,4 @@
-# Image input (International 0.1.5)
+# Image input (International 0.1.6)
 
 [简体中文](IMAGE-INPUT.md) · [Home](../README.en.md)
 
@@ -8,7 +8,9 @@ Image input is enabled only for models explicitly marked `supportsImages` by the
 
 Accepted attachment formats are PNG, JPEG, WebP and GIF. The plugin reads local attachments through DSH's `ctx.attachments.readImageRequest` API and requests bounded dimensions and encoded size. Images are sent as native `image` blocks in the official CLI stream-json input, not converted into prose or public URLs. Text requests keep the existing JSON output mode. Image requests use stream-json input and output, then read native `structured_output` from one unique final record. Only `StructuredOutput` is enabled in the CLI; DSH continues to execute business tools.
 
-The official documentation describes stream-json image input and `--json-schema` structured output separately, without specifying their combination for every CLI/model version. The combined mode is an adapter implementation and still needs validation on the target CLI version and account.
+The official documentation describes stream-json image input and `--json-schema` structured output separately, without specifying their combination for every CLI/model version. The combined mode is an adapter implementation and needs validation on the target CLI version and account.
+
+Post-build validation on 2026-10-24 used the actual adapter and International CLI with deepseek-v4.1-flash. A synthetic 360x240 six-color image passed every color check, with no DSH business tools executed. The gpt-5.6-luna text control returned `CLI_OUTPUT_INVALID`, so no image was sent to that model. This does not cover every model or verify the actual DSH upload UI.
 
 ## Adapter request limits
 

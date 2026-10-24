@@ -2,11 +2,17 @@
 
 **简体中文** · [English](README.en.md)
 
-[下载 0.1.5 安装包](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.5/dsh-codebuddy-cli-intl-0.1.5.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.5.tgz) · [安装教程](docs/安装教程.md) · [图片输入说明](docs/IMAGE-INPUT.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
+[下载 0.1.6 安装包](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.6/dsh-codebuddy-cli-intl-0.1.6.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.6.tgz) · [安装教程](docs/安装教程.md) · [图片输入说明](docs/IMAGE-INPUT.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
 
 在 DeepSeek Harness（DSH）中，使用本机官方 CodeBuddy CLI 的国际站账号可用模型。插件负责转换模型请求和结果，DSH 继续管理对话、权限和工具执行。插件没有中转服务器，也不导入 WorkBuddy 桌面凭据。
 
-## 0.1.5 更新
+## 0.1.6 兼容更新
+
+- 修复 DSH 0.2.1-rc.3 拦截旧版插件的问题。engines.dsh 和六项 DSH peer 依赖均只声明已核查的 0.2.1-rc.2 与 0.2.1-rc.3，不宣称兼容其他版本。
+- 本版只更新版本号、兼容元数据和说明文档，业务实现沿用 0.1.5。
+- 77 项合成自动检查通过；官方 DSH 兼容检查逻辑对 rc.2、rc.3 均接受 engines.dsh 与六项 peer 声明。
+
+## 0.1.5 功能（0.1.6 沿用）
 
 - 在 0.1.4 原生 JSON Schema 路线上加入图片输入，只对官方动态目录明确标记 `supportsImages` 的模型启用。
 - DSH 附件通过本机附件服务读取，并以官方 CLI 原生 stream-json 图片块发送；文本请求继续使用 JSON 输出。CLI 业务工具仍关闭，DSH 继续管理文件、命令及工具执行。
@@ -14,9 +20,9 @@
 - 图片字节、Base64 和附件标识不会写入日志；诊断只记图片计数和字节数。DSH 已卸载的较早图片不会重新读取。
 - 仍只读取唯一最终记录的 `structured_output`，不从自由文本回退；一次 CLI 调用不代表一次推理或固定用量。
 
-**验证范围：**77 项合成自动检查通过。使用既有国际版 CLI 配置执行的纯文本 Schema 对照返回 `CLI_AUTH_REQUIRED`（401），因此没有发送图片请求，国际版真实识图尚未验证。此前因相对路径指向错误配置目录而产生的超时，以及一次未检查错误状态和识图内容的裸 CLI 图片结果，均不计入验证；国内版结果也不替代国际版验证。实现组合采用官方 CLI 文档描述的原生 stream-json 图片输入与 JSON Schema 结构化输出格式；官方文档分开说明这两种模式，本版没有真实识图证据。实际调用仍需有效的国际版 CLI 登录和所选模型权限。本版没有验证所有模型，也没有验证 DSH 界面上传流程。
+**验证范围：**77 项合成自动检查通过。2026-10-24 使用实际适配器和国际 CLI 对 deepseek-v4.1-flash 完成文字对照及合成 360×240 六色图片识别，均通过且未执行 DSH 业务工具；gpt-5.6-luna 文字对照返回 `CLI_OUTPUT_INVALID`，没有发送图片。未验证所有模型或真实 DSH 上传界面。0.1.6 没有发起新的模型调用。此前因相对路径指向错误配置目录而产生的超时，以及一次未检查错误状态和识图内容的裸 CLI 图片结果，均不计入验证；国内版结果也不替代国际版验证。实际调用仍需有效的国际版 CLI 登录和所选模型权限。
 
-国际版和[国内版](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn)是独立插件，使用独立提供方 ID、区域入口与 CLI 配置目录。国际版版本号独立：当前为 0.1.5；补丁版本递增至 0.1.9 后，下一版使用 0.2.0，不生成 0.1.10。
+国际版和[国内版](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn)是独立插件，使用独立提供方 ID、区域入口与 CLI 配置目录。国际版版本号独立：当前为 0.1.6；补丁版本递增至 0.1.9 后，下一版使用 0.2.0，不生成 0.1.10。
 
 ## 安装与登录
 

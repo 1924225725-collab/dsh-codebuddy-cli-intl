@@ -1,8 +1,10 @@
-# Installation and usage (International 0.1.5)
+# Installation and usage (International 0.1.6)
 
 [简体中文](安装教程.md) · [Home](../README.en.md) · [Troubleshooting](USER_GUIDE.en.md)
 
-1. Download the [International 0.1.5 package](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.5/dsh-codebuddy-cli-intl-0.1.5.tgz) and import the `.tgz` through DSH plugin management. Do not import GitHub's source ZIP.
+Compatibility is declared for DSH **0.2.1-rc.2** and **0.2.1-rc.3** only; other DSH versions are not claimed.
+
+1. Download the [International 0.1.6 package](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.6/dsh-codebuddy-cli-intl-0.1.6.tgz) and import the `.tgz` through DSH plugin management. Do not import GitHub's source ZIP.
 2. Enable `dsh-codebuddy-cli-intl` and open component `llm-codebuddy-cli-intl` settings. If the page is missing, confirm the plugin is enabled and restart DSH.
 3. Click **Set up CLI**. Existing installations are checked first; otherwise the official international installer or official npm package is used. The setup does not read or import WorkBuddy desktop credentials.
 4. Copy the sign-in command from settings into PowerShell (Terminal on macOS/Linux). Run the CLI, enter `/login`, choose **International Site**, and wait for the CLI to confirm sign-in.

@@ -1,4 +1,4 @@
-# 图片输入（国际版 0.1.5）
+# 图片输入（国际版 0.1.6）
 
 [English](IMAGE-INPUT.en.md) · [返回首页](../README.md)
 
@@ -9,6 +9,8 @@
 支持的附件格式为 PNG、JPEG、WebP 和 GIF。插件通过 DSH `ctx.attachments.readImageRequest` 读取本机附件，并请求适配后的图片尺寸和编码大小。图片作为官方 CLI stream-json 输入中的原生 `image` block 发送，不会转成普通文本或公网链接。文本请求仍沿用 CLI 的 JSON 输出方式；含图片请求才改用 stream-json 输入和输出，再从唯一最终结果读取原生 `structured_output`。CLI 中只启用 `StructuredOutput`，业务工具仍由 DSH 执行。
 
 官方文档分别描述 stream-json 图片输入和 `--json-schema` 结构化结果，没有说明两者组合对所有 CLI/模型版本都可用。因此这属于适配器实现，实际可用性仍需在目标 CLI 版本和账号上验证。
+
+2026-10-24 的构建后验证使用实际适配器、国际 CLI 与 deepseek-v4.1-flash，识别合成 360×240 六色图片并通过全部颜色核对；调用没有执行 DSH 业务工具。gpt-5.6-luna 文字对照返回 `CLI_OUTPUT_INVALID`，因此未对它发送图片。此结果不覆盖所有模型，也没有验证真实 DSH 上传界面。
 
 ## 本插件的请求限制
 

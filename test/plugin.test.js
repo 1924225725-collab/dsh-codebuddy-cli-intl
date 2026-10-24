@@ -251,7 +251,7 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   const processLog = (await logAction('exportDetailedLogs')).body
   assert.equal(processLog.entries.length, 4)
   assert.equal(processLog.entries[0].errorCode, 'CLI_AUTH_REQUIRED')
-  assert.equal(processLog.entries[0].pluginVersion, '0.1.5')
+  assert.equal(processLog.entries[0].pluginVersion, '0.1.6')
   assert.equal(processLog.entries[0].processDiagnostics.exitCode, 0)
   assert.equal(processLog.entries[0].processDiagnostics.stdoutBytes, 0)
   assert.ok(processLog.entries[0].processDiagnostics.stderrBytes > 0)

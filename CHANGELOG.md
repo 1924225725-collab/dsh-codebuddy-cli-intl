@@ -1,5 +1,17 @@
 # 更新记录 / Changelog
 
+## [0.1.6](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.6)
+
+- 修复 DSH 0.2.1-rc.3 对国际版旧版精确 rc.2 依赖的兼容性拦截。engines.dsh 与六项 DSH peer 依赖均明确声明 0.2.1-rc.2 || 0.2.1-rc.3；其他 DSH 版本未声明兼容。
+- 本版仅更新插件版本、兼容元数据与说明文档，没有改变业务实现。77 项合成自动检查通过；按官方 DSH 兼容检查逻辑验证 rc.2、rc.3 均满足 engines 和六项 peer 声明。
+- 沿用 0.1.5 已有验证：deepseek-v4.1-flash 的国际 CLI 文字与合成六色图片经实际适配器调用通过；gpt-5.6-luna 文字对照仍返回 CLI_OUTPUT_INVALID，未发送图片。未验证所有模型或真实 DSH 上传界面；本版没有发起新的模型调用。
+
+## [0.1.6](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.6) — English
+
+- Fix DSH 0.2.1-rc.3 rejecting the previous exact rc.2 requirements for the International plugin. engines.dsh and all six DSH peer dependencies now declare exactly 0.2.1-rc.2 || 0.2.1-rc.3; compatibility with other DSH versions is not claimed.
+- This release changes only the plugin version, compatibility metadata and documentation. All 77 synthetic automated checks pass; the official DSH compatibility logic accepts rc.2 and rc.3 for both the engine and all six peer declarations.
+- Inherited 0.1.5 validation: actual International CLI adapter text and a synthetic six-color image passed with deepseek-v4.1-flash. The gpt-5.6-luna text control still returned CLI_OUTPUT_INVALID, and no image was sent. Not all models or the actual DSH upload UI were verified. No new model request was made for this release.
+
 ## [0.1.5](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.5)
 
 - 新增模型图片输入能力：仅在 CLI 动态目录明确标记 `supportsImages` 时展示和允许图片输入；本机 DSH 附件通过 `ctx.attachments.readImageRequest` 转换为官方 CLI 原生 stream-json 图片块。
