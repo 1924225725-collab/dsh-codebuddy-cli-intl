@@ -53,6 +53,21 @@ test('stream authentication frames are classified without exposing their content
     && !error.message.includes('PRIVATE_SYNTHETIC_TOKEN'))
 })
 
+test('stream error frames classify fixed failures and hide private details before any following result', async () => {
+  for (const [mode, code, secret] of [
+    ['error-permission', 'CLI_LOCAL_PERMISSION_DENIED', 'PRIVATE_SYNTHETIC_PATH'],
+    ['error-auth', 'CLI_AUTH_REQUIRED', 'PRIVATE_SYNTHETIC_AUTH'],
+    ['error-generic', 'CLI_REQUEST_FAILED', 'PRIVATE_SYNTHETIC_UNKNOWN_ERROR']
+  ]) {
+    await assert.rejects(run(mode), error => {
+      assert.equal(error.code, code)
+      assert.equal(error.message.includes(secret), false)
+      assert.ok(error.processDiagnostics.stdoutBytes > 0)
+      return true
+    })
+  }
+})
+
 test('cancellation and the request deadline stop the image process without a usable result', async () => {
   const controller = new AbortController()
   const pending = run('hang', { signal: controller.signal })

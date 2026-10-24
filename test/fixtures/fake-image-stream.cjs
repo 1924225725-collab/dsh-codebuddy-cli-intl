@@ -25,6 +25,12 @@ if (mode === 'invalid') {
   init(); emit({ type: 'assistant', message: { content: [{ type: 'text', text: '401 Unauthorized' }] } })
 } else if (mode === 'auth') {
   init(); emit({ type: 'error', error: '401 Unauthorized PRIVATE_SYNTHETIC_TOKEN' })
+} else if (mode === 'error-permission') {
+  init(); emit({ type: 'error', error: 'EPERM: operation not permitted, mkdir PRIVATE_SYNTHETIC_PATH' }); emit(result())
+} else if (mode === 'error-auth') {
+  init(); emit({ type: 'error', error: { message: '401 Unauthorized PRIVATE_SYNTHETIC_AUTH' } })
+} else if (mode === 'error-generic') {
+  init(); emit({ type: 'error', error: { message: 'PRIVATE_SYNTHETIC_UNKNOWN_ERROR' } })
 } else if (mode === 'string') {
   init(); emit(result('not an object'))
 } else if (mode === 'hang') {

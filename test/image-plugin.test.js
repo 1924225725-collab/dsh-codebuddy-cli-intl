@@ -15,7 +15,7 @@ registerHooks({
   }
 })
 
-test('international image adapter keeps business-tool authority in DSH and excludes image requests from raw logs', async t => {
+test('international image adapter carries user/tool images while DSH retains business-tool authority and log privacy', async t => {
   const { apply, inject } = await import('../lib/index.js')
   assert.ok(inject.includes('attachments'))
   const directory = await mkdtemp(path.join(tmpdir(), 'dsh-intl-image-plugin-'))
@@ -87,7 +87,10 @@ test('international image adapter keeps business-tool authority in DSH and exclu
     ...opts,
     messages: [...initialMessages,
       { role: 'assistant', content: [call] },
-      { role: 'tool', toolCallId: call.id, content: 'synthetic DSH tool result only' },
+      { role: 'tool', toolCallId: call.id, isError: false, content: [
+        { type: 'text', text: 'synthetic DSH tool result only' },
+        { type: 'image', attachment: refA }
+      ] },
       { role: 'user', content: 'compare the images and summarize the result' }]
   })
   assert.equal(followUp.at(-1).reason.kind, 'stop')
@@ -95,7 +98,8 @@ test('international image adapter keeps business-tool authority in DSH and exclu
 
   const requests = (await readFile(path.join(bin, 'requests.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse).filter(item => item.args)
   assert.equal(requests.length, 2)
-  for (const record of requests) {
+  const expectedImages = [[imageA, imageB], [imageA, imageB, imageA]]
+  for (const [requestIndex, record] of requests.entries()) {
     const args = record.args
     assert.equal(args[args.indexOf('--input-format') + 1], 'stream-json')
     assert.equal(args[args.indexOf('--output-format') + 1], 'stream-json')
@@ -110,12 +114,23 @@ test('international image adapter keeps business-tool authority in DSH and exclu
     assert.equal(turn.type, 'user')
     assert.equal(turn.session_id, '')
     assert.equal(turn.parent_tool_use_id, null)
-    assert.deepEqual(turn.message.content.slice(1).map(block => Buffer.from(block.source.data, 'base64').toString()), [imageA.toString(), imageB.toString()])
+    assert.deepEqual(turn.message.content.slice(1).map(block => Buffer.from(block.source.data, 'base64')), expectedImages[requestIndex])
     assert.equal(turn.message.content[0].text.includes(imageA.toString('base64')), false)
     assert.equal(turn.message.content[0].text.includes('synthetic-A'), false)
     assert.equal(turn.message.content[0].text.includes('synthetic-B'), false)
     assert.match(turn.message.content[0].text, /CLI image 1/u)
     assert.match(turn.message.content[0].text, /CLI image 2/u)
+    if (requestIndex === 1) {
+      const envelopeStart = turn.message.content[0].text.indexOf('{"protocol"')
+      const envelope = JSON.parse(turn.message.content[0].text.slice(envelopeStart))
+      const toolResult = envelope.messages.find(message => message.role === 'tool')
+      assert.equal(toolResult.toolCallId, call.id)
+      assert.equal(toolResult.isError, false)
+      assert.match(toolResult.content[1].text, /CLI image 3/u)
+      assert.match(turn.message.content[0].text, /CLI image 3/u)
+    } else {
+      assert.doesNotMatch(turn.message.content[0].text, /CLI image 3/u)
+    }
   }
 
   await assert.rejects(collect({ ...opts, model: 'new-free-model' }), { code: 'IMAGE_MODEL_UNSUPPORTED' })
@@ -138,7 +153,14 @@ test('international image adapter keeps business-tool authority in DSH and exclu
   await action('armCapture')
   await assert.rejects(collect({
     ...opts,
-    messages: [{ role: 'user', content: [{ type: 'text', text: 'response-case:image-wrong-shape' }, { type: 'image', attachment: refA }] }]
+    messages: [
+      { role: 'user', content: [{ type: 'text', text: 'Inspect the failed screenshot tool result.' }] },
+      { role: 'assistant', content: [{ type: 'tool-call', id: 'failed-capture-call', name: 'screen_capture', arguments: {} }] },
+      { role: 'tool', toolCallId: 'failed-capture-call', isError: true, content: [
+        { type: 'text', text: 'response-case:image-wrong-shape screenshot operation failed.' },
+        { type: 'image', attachment: refA }
+      ] }
+    ]
   }), { code: 'STRUCTURED_OUTPUT_INVALID' })
   const details = await action('exportDetailedLogs')
   assert.equal(details.entries.at(-1).imageRequest, true)
@@ -146,6 +168,17 @@ test('international image adapter keeps business-tool authority in DSH and exclu
   assert.equal(details.entries.at(-1).sample, undefined)
   assert.equal(details.entries.at(-1).diagnostics.imageCount, 1)
   assert.equal(details.privacy.includesRawReplies, false)
+  assert.equal(JSON.stringify(details).includes(imageA.toString('base64')), false)
+  const allRequests = (await readFile(path.join(bin, 'requests.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse).filter(item => item.args)
+  assert.equal(allRequests.length, 3)
+  const toolOnlyTurn = JSON.parse(allRequests[2].input)
+  assert.deepEqual(toolOnlyTurn.message.content.slice(1).map(block => Buffer.from(block.source.data, 'base64')), [imageA])
+  const toolOnlyPrompt = toolOnlyTurn.message.content[0].text
+  const toolOnlyEnvelope = JSON.parse(toolOnlyPrompt.slice(toolOnlyPrompt.indexOf('{"protocol"')))
+  const failedToolResult = toolOnlyEnvelope.messages.find(message => message.role === 'tool')
+  assert.equal(failedToolResult.toolCallId, 'failed-capture-call')
+  assert.equal(failedToolResult.isError, true)
+  assert.match(failedToolResult.content[1].text, /CLI image 1/u)
   const logPath = path.join(directory, 'dsh-codebuddy-cli-intl', 'logs', 'diagnostics.json')
   const stored = await readFile(logPath, 'utf8')
   assert.equal(stored.includes(imageA.toString('base64')), false)

@@ -2,7 +2,7 @@
 
 [简体中文](使用与故障处理指南.md) · [Installation](INSTALL.en.md) · [Home](../README.en.md)
 
-For International 0.1.6. Plugin settings contain an offline-readable troubleshooting summary. This page provides the full guide.
+For International 0.1.7. Plugin settings contain an offline-readable troubleshooting summary. This page provides the full guide.
 
 ## Check the failure stage before retrying
 

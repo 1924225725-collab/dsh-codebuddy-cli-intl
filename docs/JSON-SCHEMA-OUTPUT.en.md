@@ -1,8 +1,8 @@
-# Native JSON Schema output from the international CLI (0.1.6)
+# Native JSON Schema output from the international CLI (0.1.7)
 
 [简体中文](JSON-SCHEMA-OUTPUT.md) · [Home](../README.en.md)
 
-This note describes the International 0.1.6 implementation carried forward from 0.1.5. Image requests use stream-json for both input and output while text-only requests retain JSON output. The official documentation describes these modes separately, so their combined behavior must be verified against the installed CLI and account. An actual adapter call with a synthetic six-color image passed on 2026-10-24 with deepseek-v4.1-flash; other models and the DSH upload UI remain unverified.
+This note describes the International 0.1.7 route carried forward from 0.1.5. Image requests, whether sourced from user messages or standard tool results, use stream-json for both input and output while text-only requests retain JSON output. The official documentation describes these modes separately, so their combined behavior must be verified against the installed CLI and account. A 0.1.5 actual adapter call with a synthetic six-color image passed with deepseek-v4.1-flash; the 0.1.7 tool-result image path has only synthetic adapter tests. Other models and the actual DSH screenshot/upload UI remain unverified.
 
 ## Request path
 

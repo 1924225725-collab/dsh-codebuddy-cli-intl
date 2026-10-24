@@ -1,5 +1,23 @@
 # 更新记录 / Changelog
 
+## [0.1.7](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.7)
+
+- 支持读取任意 DSH 工具标准 tool 结果中的图片附件：消息必须带非空 toolCallId，图片必须是 DSH content 中的标准 attachment 引用。没有工具名白名单；只要工具按此格式返回即可，不代表所有第三方工具都已逐个实测。
+- 用户图片与工具结果图片沿用同一附件读取、图片预算、DSH 卸载和日志隐私处理；保留 toolCallId、isError、内容顺序。assistant、system、developer 图片继续拒绝；工具图片缺少 toolCallId 时明确报 IMAGE_TOOL_CALL_INVALID。
+- 不读取任意本地路径、URL 或裸 Base64；不适配原生音视频、PDF 内容解析、图片生成及工具自定义的非标准截图输出。CLI 仍只开放 StructuredOutput，业务工具仍由 DSH 执行。
+- 图片 JSONL 通道现可安全识别 CLI error 帧的字符串或 message 字段：已知鉴权/本地权限错误归为固定错误码，未知错误使用 CLI_REQUEST_FAILED；错误帧后续即使出现 result 也不会交付。
+- 80 项合成自动检查通过，覆盖用户与工具图片混排、工具单独截图、工具 ID/isError/顺序、共用预算、卸载、日志隐私及 error 帧分类。没有发起新模型请求；未逐个验证实际 DSH 桌面/浏览器/第三方截图工具或上传界面。
+- 沿用 0.1.5 的历史实际适配器结果：deepseek-v4.1-flash 文字与合成六色图片通过；gpt-5.6-luna 文字对照为 CLI_OUTPUT_INVALID，未发送图片。这不是对所有模型或实际 DSH 截图工具的验证。
+
+## [0.1.7](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.7) — English
+
+- Accept image attachments in standard DSH tool-result messages from any tool name, provided the message has a non-empty toolCallId and the image uses the standard DSH content attachment reference. There is no tool-name allowlist; this does not mean every third-party tool has been individually tested.
+- User and tool-result images share attachment reading, image budgets, DSH offloading and log privacy handling. Preserve toolCallId, isError and content order. Images in assistant, system and developer messages remain unsupported; a tool image without toolCallId fails with IMAGE_TOOL_CALL_INVALID.
+- Do not read arbitrary local paths, URLs or raw Base64. Native audio/video, PDF content extraction, image generation and non-standard tool screenshot output are not adapted. StructuredOutput remains the only enabled CLI tool; DSH executes business tools.
+- The image JSONL route safely handles CLI error frames with either a string or message field. Known authentication/local-permission errors use fixed classifications; unknown errors use CLI_REQUEST_FAILED. No later result is delivered after an error frame.
+- All 80 synthetic automated checks pass, covering mixed user/tool images, tool-only screenshots, tool ID/isError/order, shared budgets, offloading, log privacy and error-frame classification. No new model request was made. Actual DSH desktop/browser/third-party screenshot tools and the upload UI were not individually verified.
+- Inherited 0.1.5 adapter evidence: deepseek-v4.1-flash text and a synthetic six-color image passed; the gpt-5.6-luna text control returned CLI_OUTPUT_INVALID and no image was sent. This does not validate every model or actual DSH screenshot tool.
+
 ## [0.1.6](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.6)
 
 - 修复 DSH 0.2.1-rc.3 对国际版旧版精确 rc.2 依赖的兼容性拦截。engines.dsh 与六项 DSH peer 依赖均明确声明 0.2.1-rc.2 || 0.2.1-rc.3；其他 DSH 版本未声明兼容。

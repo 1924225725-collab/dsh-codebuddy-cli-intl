@@ -38,7 +38,7 @@ test('basic logs use a field allowlist, persist across restarts and exclude raw 
   assert.equal(restored.status().entries, 2)
   const detailed = await restored.export(true)
   assert.equal(detailed.entries[1].sample.head, 'PRIVATE_REPLY')
-  assert.equal(detailed.entries[1].pluginVersion, '0.1.6')
+  assert.equal(detailed.entries[1].pluginVersion, '0.1.7')
   assert.equal(detailed.privacy.includesRawReplies, true)
   assert.equal(JSON.stringify(await restored.export()).includes('PRIVATE_REPLY'), false)
 })

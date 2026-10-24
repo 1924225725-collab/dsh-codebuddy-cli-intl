@@ -9,3 +9,5 @@ The adapter reads `structured_output` only from a unique final result record, th
 The adapter starts one CLI process per DSH request. `--max-turns 4` bounds structured processing rounds inside the CLI; it does not guarantee one model inference or fixed usage per request. The official usage details remain authoritative. The configured overall timeout and cancellation signal remain active.
 
 The adapter retains DSH tool-name allowlisting and object-argument checks. DSH executes tools under its permissions and returns results/errors in later history. The plugin does not expose a general-purpose model HTTP service. Official CLI owns authentication and remote requests. Provider IDs, configuration and log directories remain separate from the China plugin.
+
+Images in standard tool results preserve toolCallId and isError and are projected in DSH history order alongside user images. Tool names are not allowlisted; a tool must return a standard DSH attachment reference. The adapter does not read paths, URLs or Base64 returned as ordinary text.
