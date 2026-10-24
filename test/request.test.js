@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { makeRequest, MODEL_SYSTEM_PROMPT } from '../lib/request.js'
+import { makeImageStreamInput, makeRequest, MODEL_SYSTEM_PROMPT } from '../lib/request.js'
 
 test('sends active schemas once, preserves history and reports sizes without retaining prompt contents in diagnostics', () => {
   const tools = [{ name: 'read_file', description: 'UNIQUE_SCHEMA_MARKER', parameters: { type: 'object', properties: {} } }]
@@ -24,4 +24,15 @@ test('preserves tool failure flags and instructs the model to honor DSH file and
   assert.deepEqual(envelope.messages, messages)
   assert.ok(MODEL_SYSTEM_PROMPT.includes('isError=true'))
   assert.ok(MODEL_SYSTEM_PROMPT.includes('read-before-edit'))
+})
+
+test('image requests use one native JSONL user turn and bound the combined prompt and image bytes', () => {
+  const prompt = '{"protocol":"dsh-codebuddy-model/v1"}'
+  const nativeImages = [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AQID' } }]
+  const { input, bytes } = makeImageStreamInput(prompt, nativeImages)
+  const [line, ...extra] = input.trim().split('\n')
+  assert.deepEqual(extra, [])
+  assert.equal(bytes, Buffer.byteLength(input))
+  assert.deepEqual(JSON.parse(line), { type: 'user', session_id: '', parent_tool_use_id: null, message: { role: 'user', content: [{ type: 'text', text: prompt }, ...nativeImages] } })
+  assert.throws(() => makeImageStreamInput(prompt, []), { code: 'CLI_STREAM_INPUT_INVALID' })
 })

@@ -1,5 +1,23 @@
 # 更新记录 / Changelog
 
+## [0.1.5](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.5)
+
+- 新增模型图片输入能力：仅在 CLI 动态目录明确标记 `supportsImages` 时展示和允许图片输入；本机 DSH 附件通过 `ctx.attachments.readImageRequest` 转换为官方 CLI 原生 stream-json 图片块。
+- 为每次请求设置 5 张保留图片、每张 2 MiB、Base64 总量 8 MiB 和 1920 像素最长边目标。已由 DSH 卸载的旧图不重读；格式、读取、取消和预算错误均会明确失败，不发送部分图片。
+- 图片请求仍只启用官方 `StructuredOutput`，不开放 CLI 文件或命令工具；工具计划交给 DSH 执行。文本请求保留原 JSON 输出路线。
+- 配置页增加模型图片能力状态与双语限制说明。图片内容、Base64 和附件 ID 不进入诊断日志。
+- 77 项合成自动检查通过，覆盖 CLI JSONL 终止与冲突、目录能力、图片顺序与预算、工具续接和日志隐私。使用既有国际 CLI 配置运行纯文本原生 Schema 对照时，`gpt-5.6-luna` 和 `deepseek-v4.1-flash` 均返回 `CLI_AUTH_REQUIRED`（401）；因此没有发送图片请求，国际站真实识图尚未验证。
+- 此前因相对路径指向错误配置目录而产生的超时，以及一次未检查错误状态和识图内容的裸 CLI 图片结果，均不作为本版验证证据；国内版结果也不能替代国际版验证。自动测试使用合成附件和假 CLI，不产生真实模型调用。实现组合采用官方 CLI 文档描述的原生 stream-json 图片输入与 JSON Schema 结构化输出格式，官方文档分开描述这两种模式。真实调用仍要求有效的国际 CLI 登录和所选模型权限；本版未验证所有模型或 DSH 界面上传流程。
+
+## [0.1.5](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.5) — English
+
+- Add model image input, enabled only when the CLI's live catalog explicitly marks `supportsImages`. DSH attachments are projected through `ctx.attachments.readImageRequest` into native CLI stream-json image blocks.
+- Bound each request to 5 retained images, 2 MiB per image, 8 MiB aggregate Base64 and a 1920-pixel target longest edge. DSH-offloaded history is not reread; format, read, cancellation and budget failures are explicit and never send partial images.
+- Image requests still enable only official `StructuredOutput`; CLI file and command tools stay disabled, and DSH executes tool plans. Text requests keep the existing JSON output route.
+- Add model image-capability status and bilingual limits to settings. Image content, Base64 and attachment IDs are excluded from diagnostics.
+- All 77 synthetic automated checks pass, covering JSONL terminal/conflict handling, catalog capability, image order and budgets, DSH tool continuation and log privacy. Text-only native Schema controls using the existing International CLI profile returned `CLI_AUTH_REQUIRED` (401) on both `gpt-5.6-luna` and `deepseek-v4.1-flash`; no image request was sent, so live International image recognition remains unverified.
+- Earlier timeouts resulted from a relative path resolving to the wrong profile, and an earlier bare CLI image result did not check its error state or image recognition; neither counts as release validation. China-version results do not validate the International route. Automated checks use synthetic attachments and a fake CLI, with no live model request. The adapter combines the native stream-json image input and JSON Schema structured output formats described separately in the official CLI docs. A live image call still requires valid International CLI sign-in and access to the selected model. Not all models or the DSH upload UI flow have been verified.
+
 ## [0.1.4](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.4)
 
 - 将模型响应改为官方 CLI `--json-schema` 与 `StructuredOutput` 路线，只读取唯一最终结果记录的 `structured_output`。CLI 业务工具关闭，MCP 配置为空；DSH 继续负责工具执行。

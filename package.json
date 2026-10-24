@@ -2,7 +2,7 @@
   "name": "dsh-codebuddy-cli-intl",
   "displayName": "DSH CodeBuddy CLI（国际版）",
   "description": "通过官方 CodeBuddy CLI 国际站连接 DSH；自动检测模型与倍率，提供本机诊断日志，工具仍由 DSH 执行。",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/1924225725-collab/dsh-codebuddy-cli-intl.git"
@@ -12,7 +12,7 @@
     "url": "https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/issues"
   },
   "scripts": {
-    "test": "node --test test/diagnostics.test.js test/model-response.test.js test/cli-response.test.js test/model-catalog.test.js test/cli-runtime.test.js test/local-http.test.js test/plugin.test.js test/client.test.js test/usage.test.js test/request.test.js test/international.test.js test/structured-output-route.test.js test/structured-output-plugin.test.js"
+    "test": "node --test test/diagnostics.test.js test/model-response.test.js test/cli-response.test.js test/model-catalog.test.js test/cli-runtime.test.js test/local-http.test.js test/plugin.test.js test/client.test.js test/usage.test.js test/request.test.js test/international.test.js test/structured-output-route.test.js test/structured-output-plugin.test.js test/images.test.js test/cli-image-process.test.js test/image-plugin.test.js"
   },
   "type": "module",
   "main": "lib/index.js",
@@ -42,6 +42,7 @@
     "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.1-rc.2",
     "@deepseek-ai/dsh-client-ui-renderer": "0.2.1-rc.2",
     "@deepseek-ai/dsh-client-ui-settings": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-attachment": "0.2.1-rc.2",
     "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
     "@deepseek-ai/schemastery": "^3.18.5",
     "react": "^18.2.0"

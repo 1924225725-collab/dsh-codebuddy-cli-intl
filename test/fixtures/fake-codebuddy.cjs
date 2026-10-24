@@ -5,7 +5,7 @@ const readline = require('node:readline')
 const recordFile = path.join(process.env.DSH_FIXTURE_DIR || __dirname, 'requests.jsonl')
 const record = (data) => fs.appendFileSync(recordFile, `${JSON.stringify(data)}\n`)
 const models = [
-  { modelId: 'future-alpha', name: '未来 Alpha', _meta: { credits: 'x0.33 credits', supportsReasoning: true, maxInputTokens: 1000000, effortOptions: [{ value: 'high', name: 'High' }] } },
+  { modelId: 'future-alpha', name: '未来 Alpha', _meta: { credits: 'x0.33 credits', supportsReasoning: true, supportsImages: true, maxInputTokens: 1000000, effortOptions: [{ value: 'high', name: 'High' }] } },
   { modelId: 'new-free-model', name: 'New Free', _meta: { credits: 'x0.00 credits', supportsReasoning: false } }
 ]
 if (process.argv.includes('--version')) {
@@ -25,6 +25,47 @@ if (process.argv.includes('--version')) {
     const split = Math.floor(buffer.length / 2)
     process.stdout.write(buffer.subarray(0, split))
     setTimeout(() => process.stdout.write(buffer.subarray(split)), 1)
+  })
+} else if (process.argv.includes('--print') && process.argv.includes('--input-format')) {
+  let input = ''
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (chunk) => { input += chunk })
+  process.stdin.on('end', () => {
+    record({ args: process.argv.slice(2), input })
+    const turn = JSON.parse(input.trim())
+    const text = turn.message.content.find(block => block?.type === 'text')?.text ?? ''
+    const envelope = JSON.parse(text.slice(text.indexOf('{"protocol"')))
+    const toolCalls = text.includes('tool-round') && envelope.tools.length
+      && !envelope.messages.some(message => message.role === 'tool')
+      ? [{ name: envelope.tools[0].name, arguments: { target: 'sandbox.txt' } }] : []
+    const structured = text.includes('response-case:image-wrong-shape')
+      ? { text: { PRIVATE_FAILED_REPLY: true }, toolCalls }
+      : { text: toolCalls.length ? '' : 'synthetic image response', toolCalls }
+    const usage = { input_tokens: 31, output_tokens: 9, cache_read_input_tokens: 2 }
+    const init = { type: 'system', subtype: 'init', model: 'future-alpha' }
+    if (text.includes('response-case:image-auth')) {
+      console.log(JSON.stringify(init))
+      console.log(JSON.stringify({ type: 'error', error: '401 Unauthorized PRIVATE_AUTH_TOKEN' }))
+      return
+    }
+    if (text.includes('response-case:image-missing')) {
+      console.log(JSON.stringify(init))
+      console.log(JSON.stringify({ type: 'result', subtype: 'success', result: JSON.stringify(structured), usage }))
+      return
+    }
+    if (text.includes('response-case:image-conflict')) {
+      console.log(JSON.stringify(init))
+      console.log(JSON.stringify({ type: 'result', subtype: 'success', structured_output: { text: 'first', toolCalls: [] }, usage }))
+      setTimeout(() => console.log(JSON.stringify({ type: 'result', subtype: 'success', structured_output: { text: 'second', toolCalls: [] }, usage })), 60)
+      return
+    }
+    console.log(JSON.stringify(init))
+    console.log(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'processing structured result' }] } }))
+    console.log(JSON.stringify({
+      type: 'result', subtype: 'success', structured_output: structured,
+      result: 'free-form stream output must not replace structured_output', usage,
+      modelUsage: { 'future-alpha': { inputTokens: 29, outputTokens: 9, cacheReadInputTokens: 2 } }
+    }))
   })
 } else if (process.argv.includes('--print')) {
   let input = ''

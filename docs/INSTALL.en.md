@@ -1,8 +1,8 @@
-# Installation and usage (International 0.1.4)
+# Installation and usage (International 0.1.5)
 
 [简体中文](安装教程.md) · [Home](../README.en.md) · [Troubleshooting](USER_GUIDE.en.md)
 
-1. Download the [International 0.1.4 package](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.4/dsh-codebuddy-cli-intl-0.1.4.tgz) and import the `.tgz` through DSH plugin management. Do not import GitHub's source ZIP.
+1. Download the [International 0.1.5 package](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.5/dsh-codebuddy-cli-intl-0.1.5.tgz) and import the `.tgz` through DSH plugin management. Do not import GitHub's source ZIP.
 2. Enable `dsh-codebuddy-cli-intl` and open component `llm-codebuddy-cli-intl` settings. If the page is missing, confirm the plugin is enabled and restart DSH.
 3. Click **Set up CLI**. Existing installations are checked first; otherwise the official international installer or official npm package is used. The setup does not read or import WorkBuddy desktop credentials.
 4. Copy the sign-in command from settings into PowerShell (Terminal on macOS/Linux). Run the CLI, enter `/login`, choose **International Site**, and wait for the CLI to confirm sign-in.
@@ -21,3 +21,5 @@ The default CLI configuration directory is `~/.dsh-codebuddy-cli-intl` and can b
 The **Diagnostic logs and feedback** section provides local log viewing, basic export and clearing. Basic logs exclude conversation bodies. To retain a failed raw reply, read the privacy notice and explicitly arm one-failure capture; preview and remove private information before sharing. See the [full guide](USER_GUIDE.en.md).
 
 Text input is supported; DSH manages tool execution. The adapter starts one CLI process per request, with up to four structured-processing rounds inside the CLI, so one CLI invocation does not mean one model inference. Model access, account credits and service status are determined by the official provider. Check remaining credits on the official account page.
+
+Image input is available only for models explicitly marked as image-capable in the live catalog. DSH's attachment service reads images, which are sent using the CLI's native stream-json image blocks. Each request history is limited to 5 retained images, 2 MiB per image and 8 MiB total Base64. Unsupported models and exceeded limits fail explicitly. See [image input details](IMAGE-INPUT.en.md).

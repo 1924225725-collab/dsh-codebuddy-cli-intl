@@ -22,13 +22,13 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
     }
   }
   const status = {
-    pluginVersion: '0.1.3', timeoutMs: 180000,
+    pluginVersion: '0.1.5', timeoutMs: 180000,
     logs: { entries: 12, failures: 1, samples: 0, captureArmed: false },
     activeCalls: 0, cliCheck: { state: 'available', version: '9.8.7' }, setup: { state: 'idle' },
     usage: { calls: 12, inputTokens: 170000, outputTokens: 100, uncachedInputTokens: 10000, cacheReadTokens: 150000, cacheWriteTokens: 10000,
       lastCall: { state: 'success', model: 'future-alpha', at: 1000, inputTokens: 1250, outputTokens: 7, uncachedInputTokens: 100, cacheReadTokens: 1100, cacheWriteTokens: 50, durationMs: 2345,
         diagnostics: { messageCount: 1, toolCount: 2, promptBytes: 3200, systemBytes: 4, messagesBytes: 100, toolsBytes: 2000 } } }, loginCommand: "& 'C:\\Users\\Another User\\CLI\\codebuddy.cmd'",
-    catalog: { state: 'ready', fetchedAt: 1000, models: [{ id: 'future-alpha', name: 'Future Alpha', multiplier: 0.33, credits: 'x0.33 credits', efforts: [{ id: 'high', name: 'High' }], contextWindow: 1000000 }] }
+    catalog: { state: 'ready', fetchedAt: 1000, models: [{ id: 'future-alpha', name: 'Future Alpha', multiplier: 0.33, credits: 'x0.33 credits', efforts: [{ id: 'high', name: 'High' }], contextWindow: 1000000, supportsImages: true }] }
   }
   const actions = []
   const logActions = [], downloads = [], blobs = new Map()
@@ -74,6 +74,8 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   const text = () => JSON.stringify(tree.toJSON())
   assert.ok(text().includes('×0.33'))
   assert.ok(text().includes('future-alpha'))
+  assert.ok(text().includes('官方目录声明支持'))
+  assert.ok(text().includes('最多 5 张'))
   assert.ok(text().includes('累计请求 12 次'))
   assert.ok(text().includes('累计输入（含缓存）170000'))
   assert.ok(text().includes('单次输入（含缓存）1250'))
@@ -88,7 +90,7 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   const guideLink = tree.root.findAllByType('a').find(link => link.children.join('') === '查看完整用户指南')
   assert.ok(guideLink.props.href.endsWith('/docs/使用与故障处理指南.md'))
   assert.equal(guideLink.props.rel, 'noreferrer')
-  assert.ok(text().includes('0.1.3'))
+  assert.ok(text().includes('0.1.5'))
   const button = (name) => tree.root.findAllByType('button').find((item) => item.children.join('') === name)
   await act(async () => { await button('刷新模型与倍率').props.onClick() })
   assert.ok(text().includes('brand-new-after-update'))

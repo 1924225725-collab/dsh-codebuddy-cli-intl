@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { normalizeCatalog, createModelCatalog, queryModelCatalog, modelInfo } from '../lib/model-catalog.js'
 
 const response = (ids = ['newly-released']) => ({ models: { currentModelId: ids[0], availableModels: ids.map((modelId) => ({
-  modelId, name: modelId, _meta: { credits: 'x0.07 credits', supportsReasoning: true, maxInputTokens: 1000000, effortOptions: [{ value: 'high', name: 'High' }] }
+  modelId, name: modelId, _meta: { credits: 'x0.07 credits', supportsReasoning: true, supportsImages: true, maxInputTokens: 1000000, effortOptions: [{ value: 'high', name: 'High' }] }
 })) } })
 
 test('discovers arbitrary new models, preserves zero rates, and leaves missing rates unknown', () => {
@@ -27,7 +27,9 @@ test('discovers arbitrary new models, preserves zero rates, and leaves missing r
   assert.deepEqual(info.reasoning.efforts, [{ id: 'high', name: 'High' }])
   assert.equal(info.reasoning.defaultEffort, undefined)
   assert.equal(info.context.contextWindow, 1000000)
-  assert.deepEqual(info.inputModalities, ['text'])
+  assert.deepEqual(info.inputModalities, ['text', 'image'])
+  const textOnly = modelInfo('provider', { id: 'text-only', name: 'text-only', supportsImages: false })
+  assert.deepEqual(textOnly.inputModalities, ['text'])
 })
 
 test('refreshes new models and prices after expiry, deduplicates concurrent discovery, and preserves stale results on failure', async () => {

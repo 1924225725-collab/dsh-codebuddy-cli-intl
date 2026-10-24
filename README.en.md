@@ -2,19 +2,21 @@
 
 [简体中文](README.md) · **English**
 
-[Download 0.1.4](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.4/dsh-codebuddy-cli-intl-0.1.4.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.4.tgz) · [Installation](docs/INSTALL.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
+[Download 0.1.5](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.5/dsh-codebuddy-cli-intl-0.1.5.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.5.tgz) · [Installation](docs/INSTALL.en.md) · [Image input](docs/IMAGE-INPUT.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
 
 Use models available to your international account in DeepSeek Harness (DSH) through the official CodeBuddy CLI running locally. The adapter translates model requests and results; DSH continues to manage conversations, permissions and tool execution. It runs no relay server and does not import WorkBuddy desktop credentials.
 
-## What changed in 0.1.4
+## What changed in 0.1.5
 
-- Use native JSON Schema output from the official CLI and read `structured_output` only from a unique final record. DSH still manages conversations and tool execution.
-- Validate the exact response shape, DSH tool allowlist and object arguments. Missing output, invalid structures or a non-unique final record fail explicitly; free text and `result` are never fallback sources.
-- The adapter starts one CLI process per DSH request, with up to four internal structured-processing rounds. One invocation does not mean one model inference or fixed usage; check official usage details.
-- Show native output mode and final-record count in status/diagnostics; retain separate international configuration, timeout/cancellation and log privacy controls.
-- All 63 synthetic automated checks pass. The new route has not been live-tested with an international model.
+- Add image input on top of 0.1.4's native JSON Schema path. Images are enabled only when the live official catalog explicitly marks `supportsImages`.
+- DSH attachments are read locally and sent as native image blocks through official CLI stream-json input. Text-only requests keep the JSON output route. CLI business tools remain disabled; DSH manages files, commands and tool execution.
+- Limit each request history to 5 retained images, 2 MiB per image and 8 MiB total Base64. The longest edge targets at most 1920 pixels. Unsupported models and exceeded limits fail explicitly rather than silently dropping images.
+- Logs exclude image bytes, Base64 and attachment IDs; diagnostics retain only image counts and byte totals. Images already offloaded by DSH are not reread.
+- Continue reading `structured_output` only from one unique final record; one CLI invocation does not guarantee one model inference or fixed usage.
 
-International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.4. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
+**Validation scope:** All 77 synthetic automated checks pass. A text-only Schema control call using the existing International CLI profile returned `CLI_AUTH_REQUIRED` (401), so no image request was sent and live International image recognition remains unverified. Earlier timeouts resulted from a relative path resolving to the wrong profile, and an earlier bare CLI image result did not check the error state or image recognition; neither counts as validation. China-version results do not validate the International route. The adapter combines the native stream-json image input and JSON Schema structured output formats described in the official CLI docs; the docs describe these modes separately, and this release has no live image-recognition evidence. A live call still requires valid International CLI sign-in and model access. This release has not verified every model or the DSH upload UI flow.
+
+International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.5. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
 
 ## Install and sign in
 
@@ -43,7 +45,7 @@ These interface images show the layout captured from the 0.1.0 settings componen
 
 ![DSH, adapter and official CLI request flow](docs/images/architecture.svg)
 
-The CLI runs locally in its public international environment; the plugin does not call CodeBuddy services directly. Text input is supported, and DSH executes tools. Check balances on the official account page. The plugin does not read billing records or convert token counts into credits.
+The CLI runs locally in its public international environment; the plugin does not call CodeBuddy services directly. Text and images for models that declare image support go through the official CLI; DSH executes tools. Check balances on the official account page. The plugin does not read billing records or convert token counts into credits.
 
 This is a third-party adapter, not an official endorsement or an account-safety guarantee. Model access, available credits and service terms are determined by the official account and service.
 

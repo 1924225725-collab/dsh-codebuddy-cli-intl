@@ -1,8 +1,8 @@
-# Native JSON Schema output from the international CLI (0.1.4)
+# Native JSON Schema output from the international CLI (0.1.5)
 
 [简体中文](JSON-SCHEMA-OUTPUT.md) · [Home](../README.en.md)
 
-This note describes the International 0.1.4 implementation. Validation with the China CLI does not establish live behavior for international models; this release did not test the new structured-output route with a live international model.
+This note describes the International 0.1.5 implementation. Image requests use stream-json for both input and output while text-only requests retain JSON output. The official documentation describes these modes separately, so their combined behavior must be verified against the installed CLI and account; synthetic tests do not replace a live International image call.
 
 ## Request path
 
@@ -21,6 +21,8 @@ The adapter starts one CLI process per DSH request. It does not append an automa
 
 Diagnostics retain the existing privacy controls: basic logs omit conversation bodies; raw reply capture is off until the user explicitly arms the next eligible failure. Logs are not uploaded automatically.
 
+Image requests require `supportsImages` in the live model catalog. The plugin obtains bounded local image data through DSH's attachment service and sends native stream-json image blocks. `StructuredOutput` remains the only enabled CLI tool; DSH continues to execute files, commands and other business tools. Image bytes, Base64 and attachment IDs are excluded from diagnostics. See [image input details](IMAGE-INPUT.en.md).
+
 ## Validation scope
 
-Automated regression covers native structured-result extraction, missing fields and CLI errors, zero/multiple final records, DSH tool allowlisting and object arguments, tool continuation, timeout, cancellation, log privacy and diagnostic IDs. Synthetic checks with the China CLI do not prove that every international model behaves the same way. This release makes no such guarantee.
+Automated regression covers native structured-result extraction, missing fields and CLI errors, zero/multiple final records, DSH tool allowlisting and object arguments, tool continuation, timeout, cancellation, log privacy and diagnostic IDs. The image path uses a synthetic CLI for input, boundary and result-processing checks. Tests with the China CLI do not prove that every international model behaves the same way. This release makes no such guarantee.

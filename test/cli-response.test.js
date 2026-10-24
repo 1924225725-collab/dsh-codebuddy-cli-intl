@@ -103,6 +103,9 @@ test('carries immutable DSH-compatible failure facts with a diagnostic ID instea
   assert.equal(error.failure.message, error.message)
   assert.ok(error.message.includes(requestId))
   assert.ok(Object.isFrozen(error.failure))
+  const offload = new CodeBuddyCliError('IMAGE_OFFLOAD_REQUIRED', 'Need DSH image offload', { requestId, offloadImages: 2 })
+  assert.equal(offload.failure.offloadImages, 2)
+  assert.equal(new CodeBuddyCliError('CLI_TIMEOUT', 'timeout', { offloadImages: 2 }).failure.offloadImages, undefined)
   assert.equal(new CodeBuddyCliError('CLI_TIMEOUT', 'timeout').failure.code, 'CLI_TIMEOUT')
 })
 

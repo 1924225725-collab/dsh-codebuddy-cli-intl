@@ -2,7 +2,7 @@
 
 [简体中文](使用与故障处理指南.md) · [Installation](INSTALL.en.md) · [Home](../README.en.md)
 
-For International 0.1.4. Plugin settings contain an offline-readable troubleshooting summary. This page provides the full guide.
+For International 0.1.5. Plugin settings contain an offline-readable troubleshooting summary. This page provides the full guide.
 
 ## Check the failure stage before retrying
 
@@ -22,11 +22,16 @@ The adapter converts model replies into DSH text and tool requests. DSH executes
 | Changed quotes, code or backslashes | The model may add/remove escaping or alter literal content | Ask for only the affected small block and compare characters. The adapter never unescapes every valid text field a second time; verify content before executing it |
 | `CLI_AUTH_REQUIRED` / 401 | Official CLI sign-in or authorization expired | Copy the sign-in command from settings, run `/login`, choose **International Site**, then verify one short request. The plugin cannot restore account rights or credits |
 | `CLI_TIMEOUT` | The total CLI deadline expired, including startup, model processing and process exit | Split the task, check connectivity/service status, and adjust the deadline if needed. A longer deadline cannot resolve conflicting JSON plans |
+| `IMAGE_MODEL_UNSUPPORTED` | The selected model is not explicitly marked image-capable by the catalog | Refresh the catalog and choose a model marked image-capable. Undeclared support fails explicitly; the image is not silently dropped |
+| `IMAGE_OFFLOAD_REQUIRED` or `IMAGE_TOO_LARGE` | Image count, aggregate Base64 or a converted image exceeds the adapter limit | Reduce or resize images; start a shorter conversation if needed. Images already offloaded by DSH are not resent |
+| `IMAGE_READ_FAILED` or `IMAGE_SERVICE_UNAVAILABLE` | DSH cannot provide the requested image variant, or image reading is unavailable in this DSH build | Check that the image remains in the conversation, update DSH's attachment package and upload again. Partial image requests are never sent |
 | Missing file, `grantWrite`, ACL or permission error | Wrong workspace, absent path, or DSH/OS access refusal | Verify the workspace and path in the file manager and follow actual DSH permissions. Do not classify every permission error as model formatting, or change permissions to fix formatting |
 
 ## Native structured-output boundary
 
 The adapter starts one CLI process for each DSH request and reads only `structured_output` from a unique final result record. The top-level object must contain exactly `text` and `toolCalls`. Missing fields, invalid shapes, undeclared tools, non-object arguments, or zero/multiple final records fail explicitly. Identical duplicate records are not deduplicated or selected. Repeated calls inside one valid plan remain in order.
+
+Image requests are enabled only when the live model catalog declares `supportsImages`; they use native CLI stream-json image blocks. Text-only requests keep the current JSON output route. Each request history is bounded to 5 retained images, 2 MiB per image and 8 MiB total Base64, with a 1920-pixel target longest edge. Image content and attachment IDs are excluded from logs. See [image input details](IMAGE-INPUT.en.md).
 
 `--max-turns 4` bounds structured-processing rounds inside the CLI. One CLI start does not guarantee exactly one model inference or fixed usage; official usage details are authoritative. The adapter does not append a repair request or replay completed DSH tools.
 
