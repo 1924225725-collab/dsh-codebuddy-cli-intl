@@ -96,6 +96,7 @@ test('a hanging CLI times out with numeric diagnostics without exposing stdout o
     assert.equal(error.processDiagnostics.stdoutBytes, 8)
     assert.equal(error.processDiagnostics.stderrBytes, Buffer.byteLength('private fixture diagnostic'))
     assert.ok(!JSON.stringify(error).includes('private fixture diagnostic'))
+    assert.deepEqual(error.responseDiagnostics, { outputMode: 'native-json-schema', reason: 'deadline', noticeClass: 'none', noticeSource: 'none' })
     assert.equal('stdout' in error, false)
     return true
   })

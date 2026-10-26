@@ -141,6 +141,24 @@ test('international image adapter carries user/tool images while DSH retains bus
     return true
   })
 
+  const cancelledController = new AbortController()
+  cancelledController.abort()
+  await assert.rejects(collect({ ...opts, signal: cancelledController.signal }), { code: 'ABORTED' })
+
+  const getStatus = async () => {
+    const { Readable } = await import('node:stream')
+    const request = Readable.from([])
+    request.method = 'GET'
+    request.headers = { host: 'localhost' }
+    let body
+    await routes.get('/plugins/dsh-codebuddy-cli-intl/status')(request, { writeHead() {}, end(value) { body = JSON.parse(value) } })
+    return body
+  }
+  const outcomeStatus = await getStatus()
+  assert.equal(outcomeStatus.usage.cancelledRequests, 1)
+  assert.equal(outcomeStatus.usage.imageOffloadRequests, 1)
+  assert.equal(outcomeStatus.usage.offloadImagesRequested, 2)
+
   const action = async name => {
     const { Readable } = await import('node:stream')
     const request = Readable.from([JSON.stringify({ action: name })])
@@ -163,6 +181,10 @@ test('international image adapter carries user/tool images while DSH retains bus
     ]
   }), { code: 'STRUCTURED_OUTPUT_INVALID' })
   const details = await action('exportDetailedLogs')
+  const offloadLog = details.entries.find(entry => entry.errorCode === 'IMAGE_OFFLOAD_REQUIRED')
+  const cancelledLog = details.entries.find(entry => entry.errorCode === 'ABORTED')
+  assert.equal(offloadLog.offloadImagesRequested, 2)
+  assert.equal(cancelledLog.cancelled, true)
   assert.equal(details.entries.at(-1).imageRequest, true)
   assert.equal(details.entries.at(-1).captureAttempted, true)
   assert.equal(details.entries.at(-1).sample, undefined)
@@ -185,4 +207,15 @@ test('international image adapter carries user/tool images while DSH retains bus
   assert.equal(stored.includes('SYNTHETIC_IMAGE_A_DO_NOT_LOG'), false)
   assert.equal(stored.includes('PRIVATE_FAILED_REPLY'), false)
   assert.equal(reads.length, 5)
+
+  const alreadyOffloaded = await collect({
+    model: 'future-alpha',
+    messages: [{ role: 'user', content: [{ type: 'image', attachment: refA, offloaded: true }] }]
+  })
+  assert.equal(alreadyOffloaded.at(-1).reason.kind, 'stop')
+  const offloadHistoryStatus = await getStatus()
+  assert.equal(offloadHistoryStatus.usage.historyOffloadedImages, 1)
+  const basicLogs = await action('exportLogs')
+  const offloadedHistoryLog = basicLogs.entries.find(entry => entry.diagnostics?.offloadedImageCount === 1)
+  assert.equal(offloadedHistoryLog.historyOffloadedImages, 1)
 })

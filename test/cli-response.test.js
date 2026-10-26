@@ -89,8 +89,43 @@ test('classifies fixed CLI notices and distinguishes empty from non-JSON output 
       return true
     })
   }
+  assert.throws(() => collectStructuredResult('', { stderr: '403 request illegal PRIVATE_UNVERIFIED' }), error => {
+    assert.equal(error.code, 'CLI_OUTPUT_INVALID')
+    assert.equal(error.responseDiagnostics.noticeClass, 'unclassified')
+    assert.equal(error.responseDiagnostics.noticeSource, 'stderr')
+    assert.equal(JSON.stringify(error.responseDiagnostics).includes('PRIVATE'), false)
+    return true
+  })
   assert.throws(() => collectResult(''), error => error.message.includes('标准输出为空'))
   assert.throws(() => collectResult('plain'), error => error.message.includes('非 JSON'))
+})
+
+test('classifies explicit context-window and insufficient-balance responses without exposing service bodies', () => {
+  for (const [stderr, code, status] of [
+    ['Error: 400 prompt is too long: 100001 tokens > 100000 maximum PRIVATE_REQUEST', 'CLI_CONTEXT_TOO_LARGE', 400],
+    ['API Error: 402 Insufficient Balance PRIVATE_ACCOUNT', 'CLI_INSUFFICIENT_BALANCE', 402]
+  ]) assert.throws(() => collectStructuredResult('', { stderr }), error => {
+    assert.equal(error.code, code)
+    assert.equal(error.failure.status, status)
+    assert.equal(error.message.includes('PRIVATE'), false)
+    assert.equal(JSON.stringify(error).includes('PRIVATE'), false)
+    return true
+  })
+  for (const [message, code, status] of [
+    ['prompt is too long: 100001 tokens > 100000 maximum PRIVATE_REQUEST', 'CLI_CONTEXT_TOO_LARGE', 400],
+    ['Insufficient Balance PRIVATE_ACCOUNT', 'CLI_INSUFFICIENT_BALANCE', 402]
+  ]) assert.throws(() => collectStructuredResult(JSON.stringify({ type: 'result', is_error: true, subtype: 'error_during_execution', error: { status, message } })), error => {
+    assert.equal(error.code, code)
+    assert.equal(error.failure.status, status)
+    assert.equal(error.responseDiagnostics.noticeSource, 'result-frame')
+    assert.equal(error.responseDiagnostics.noticeClass, code === 'CLI_CONTEXT_TOO_LARGE' ? 'context-limit' : 'insufficient-balance')
+    assert.equal(error.message.includes('PRIVATE'), false)
+    return true
+  })
+  const valid = { text: '400 prompt is too long is an example, not a CLI error', toolCalls: [] }
+  assert.deepEqual(collectStructuredResult(JSON.stringify({ type: 'result', structured_output: valid }), {
+    stderr: '400 prompt is too long PRIVATE_OLD_ERROR'
+  }).result, valid)
 })
 
 test('empty stdout plus a known reset or TLS notice is a private network failure even with exit zero', () => {
@@ -108,6 +143,8 @@ test('empty stdout plus a known reset or TLS notice is a private network failure
     assert.equal(JSON.stringify(error).includes('PRIVATE'), false)
     assert.equal(error.message.includes('private.invalid'), false)
     assert.equal(error.failure.status, undefined)
+    assert.equal(error.responseDiagnostics.noticeClass, 'network')
+    assert.equal(error.responseDiagnostics.noticeSource, 'stderr')
     assert.equal(Object.hasOwn(error, 'retry'), false)
     assert.equal(Object.hasOwn(error, 'retryable'), false)
     return true
@@ -152,6 +189,10 @@ test('native collection requires the official structured_output field and exactl
   const response = collectStructuredResult(JSON.stringify({ type: 'result', structured_output: value, result: 'must not replace native output' }))
   assert.deepEqual(response.result, value)
   assert.equal(response.finalResultCount, 1)
+  assert.deepEqual(response.responseDiagnostics, {
+    outputMode: 'native-json-schema', reason: 'native-result', hasStructuredOutput: true,
+    structuredOutputType: 'object', resultTypeValid: true, finalSubtypeClass: 'missing'
+  })
   for (const document of [
     { type: 'result', result: JSON.stringify(value), usage: { input_tokens: 9 } },
     { type: 'result', structured_output: null, result: JSON.stringify(value) }
@@ -160,6 +201,10 @@ test('native collection requires the official structured_output field and exactl
       assert.equal(error.code, 'CLI_STRUCTURED_OUTPUT_MISSING')
       assert.equal(error.usage.input_tokens, document.usage?.input_tokens)
       assert.equal(error.responseDiagnostics.outputMode, 'native-json-schema')
+      assert.equal(error.responseDiagnostics.hasStructuredOutput, Object.hasOwn(document, 'structured_output'))
+      assert.equal(error.responseDiagnostics.structuredOutputType, document.structured_output === null ? 'null' : 'missing')
+      assert.equal(error.responseDiagnostics.resultTypeValid, true)
+      assert.equal(error.responseDiagnostics.finalSubtypeClass, 'missing')
       assert.equal(Object.keys(error).includes('rawResult'), false)
       return true
     })
@@ -176,6 +221,16 @@ test('native collection requires the official structured_output field and exactl
   assert.throws(() => collectStructuredResult(JSON.stringify({ ...final, is_error: true, subtype: 'error_max_turns', usage: { output_tokens: 5 } })), error => {
     assert.equal(error.code, 'CLI_REQUEST_FAILED')
     assert.equal(error.usage.output_tokens, 5)
+    assert.equal(error.responseDiagnostics.finalSubtypeClass, 'error')
+    assert.equal(JSON.stringify(error.responseDiagnostics).includes('error_max_turns'), false)
+    return true
+  })
+  assert.throws(() => collectStructuredResult(JSON.stringify({ type: 'assistant', subtype: 'private-future-subtype', structured_output: 'private-content' })), error => {
+    assert.equal(error.code, 'CLI_STRUCTURED_OUTPUT_MISSING')
+    assert.equal(error.responseDiagnostics.resultTypeValid, false)
+    assert.equal(error.responseDiagnostics.structuredOutputType, 'string')
+    assert.equal(error.responseDiagnostics.finalSubtypeClass, 'other')
+    assert.equal(JSON.stringify(error.responseDiagnostics).includes('private'), false)
     return true
   })
 })

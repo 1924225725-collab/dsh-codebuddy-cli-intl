@@ -14,8 +14,14 @@ async function setup(t) {
   return { directory, store: createDiagnosticsStore({ directory }) }
 }
 const call = { state: 'error', at: 1000, model: 'test-model', durationMs: 20, errorCode: 'STRUCTURED_OUTPUT_INVALID',
-  diagnostics: { promptBytes: 10, messageCount: 2 }, responseDiagnostics: { reason: 'possibly-truncated-json', completeContainers: 1,
-    scanIncomplete: true, scanBroken: false, insideString: true, openContainerDepth: 1, incompleteTailIgnored: false, normalizations: [] } }
+  diagnostics: { promptBytes: 10, messageCount: 2 }, processDiagnostics: { timeoutMs: 5000, elapsedMs: 2000, stdoutBytes: 44, stderrBytes: 0,
+    streamReason: 'json-parse', streamPhase: 'after-init', parseStage: 'line', frameIndex: 3, frameBytes: 17, frameCount: 3,
+    initCount: 1, resultCount: 1, lastFrameClass: 'malformed', firstFinalSeen: true, terminationInitiator: 'adapter-error', closeObserved: false, deadlineReached: false,
+    rawFrame: 'PRIVATE_FRAME', customEnum: 'PRIVATE_ENUM' },
+  responseDiagnostics: { reason: 'possibly-truncated-json', completeContainers: 1,
+    scanIncomplete: true, scanBroken: false, insideString: true, openContainerDepth: 1, incompleteTailIgnored: false,
+    hasStructuredOutput: false, structuredOutputType: 'missing', resultTypeValid: false, finalSubtypeClass: 'other',
+    noticeClass: 'unclassified', noticeSource: 'stderr', arbitrary: 'SECRET_FIELD', normalizations: [] } }
 
 test('basic logs use a field allowlist, persist across restarts and exclude raw replies from every basic export', async t => {
   const { directory, store } = await setup(t)
@@ -32,13 +38,24 @@ test('basic logs use a field allowlist, persist across restarts and exclude raw 
   assert.equal(JSON.parse(basic).entries[0].responseDiagnostics.scanBroken, false)
   assert.equal(JSON.parse(basic).entries[0].responseDiagnostics.insideString, true)
   assert.equal(JSON.parse(basic).entries[0].responseDiagnostics.openContainerDepth, 1)
+  assert.equal(JSON.parse(basic).entries[0].processDiagnostics.streamReason, 'json-parse')
+  assert.equal(JSON.parse(basic).entries[0].processDiagnostics.frameBytes, 17)
+  assert.equal(JSON.parse(basic).entries[0].processDiagnostics.closeObserved, false)
+  assert.equal(JSON.parse(basic).entries[0].processDiagnostics.rawFrame, undefined)
+  assert.equal(JSON.parse(basic).entries[0].responseDiagnostics.structuredOutputType, 'missing')
+  assert.equal(JSON.parse(basic).entries[0].responseDiagnostics.noticeSource, 'stderr')
+  assert.equal(JSON.parse(basic).entries[0].responseDiagnostics.arbitrary, undefined)
+  assert.equal(basic.includes('PRIVATE_FRAME'), false)
+  assert.equal(basic.includes('PRIVATE_ENUM'), false)
   const restored = createDiagnosticsStore({ directory })
   await restored.ready
   assert.equal(restored.status().captureArmed, false)
   assert.equal(restored.status().entries, 2)
   const detailed = await restored.export(true)
+  assert.equal(detailed.entries[0].processDiagnostics.terminationInitiator, 'adapter-error')
+  assert.equal(detailed.entries[0].responseDiagnostics.finalSubtypeClass, 'other')
   assert.equal(detailed.entries[1].sample.head, 'PRIVATE_REPLY')
-  assert.equal(detailed.entries[1].pluginVersion, '0.1.8')
+  assert.equal(detailed.entries[1].pluginVersion, '0.2.0')
   assert.equal(detailed.privacy.includesRawReplies, true)
   assert.equal(JSON.stringify(await restored.export()).includes('PRIVATE_REPLY'), false)
 })
@@ -78,6 +95,23 @@ test('user-aborted requests preserve failure capture for the next real failure',
   assert.equal(report.entries[1].sample.head, 'NEXT_REAL_FAILURE_PRIVATE')
   assert.equal(JSON.stringify(report).includes('CANCELLED_PARTIAL_PRIVATE'), false)
   assert.equal(JSON.stringify(await store.export()).includes('NEXT_REAL_FAILURE_PRIVATE'), false)
+})
+
+test('event counters and image/process measurements persist only as bounded integers', async t => {
+  const { store } = await setup(t)
+  await store.record({ ...call, errorCode: 'ABORTED', cancelled: true, offloadImagesRequested: 2,
+    historyOffloadedImages: 3, diagnostics: { offloadedImageCount: 3, imageCount: 2, imageBytes: 1024 },
+    processDiagnostics: { ...call.processDiagnostics, frameIndex: 1e99, frameCount: 2.5, frameBytes: 20 * 1024 * 1024 + 1, exitCode: 1e99 } })
+  const entry = (await store.export()).entries[0]
+  assert.equal(entry.cancelled, true)
+  assert.equal(entry.offloadImagesRequested, 2)
+  assert.equal(entry.historyOffloadedImages, 3)
+  assert.equal(entry.diagnostics.offloadedImageCount, 3)
+  assert.equal(entry.diagnostics.imageCount, 2)
+  assert.equal(entry.processDiagnostics.frameIndex, undefined)
+  assert.equal(entry.processDiagnostics.frameCount, undefined)
+  assert.equal(entry.processDiagnostics.frameBytes, undefined)
+  assert.equal(entry.processDiagnostics.exitCode, undefined)
 })
 
 test('bounds stored records and raw samples, preserves both ends and serializes concurrent writes', async t => {

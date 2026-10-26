@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { makeImageStreamInput, makeRequest, MODEL_SYSTEM_PROMPT } from '../lib/request.js'
+import { makeImageStreamInput, makeRequest, MODEL_SYSTEM_PROMPT, inlineImageDataUriStats, assertInlineImageDataUriBudget, MAX_INLINE_IMAGE_DATA_URI_CHARS } from '../lib/request.js'
 
 test('sends active schemas once, preserves history and reports sizes without retaining prompt contents in diagnostics', () => {
   const tools = [{ name: 'read_file', description: 'UNIQUE_SCHEMA_MARKER', parameters: { type: 'object', properties: {} } }]
@@ -35,4 +35,25 @@ test('image requests use one native JSONL user turn and bound the combined promp
   assert.equal(bytes, Buffer.byteLength(input))
   assert.deepEqual(JSON.parse(line), { type: 'user', session_id: '', parent_tool_use_id: null, message: { role: 'user', content: [{ type: 'text', text: prompt }, ...nativeImages] } })
   assert.throws(() => makeImageStreamInput(prompt, []), { code: 'CLI_STREAM_INPUT_INVALID' })
+})
+
+test('inline image data URIs have an aggregate character budget and diagnostics retain only counts', () => {
+  const marker = 'PRIVATE_INLINE_IMAGE_MARKER'
+  const prefix = 'data:image/png;base64,'
+  const perUriChars = MAX_INLINE_IMAGE_DATA_URI_CHARS / 2
+  const uri = `${prefix}${'A'.repeat(perUriChars - prefix.length)}`
+  const messages = [{ role: 'user', content: [{ type: 'text', text: marker }, { type: 'text', text: uri }, { type: 'text', text: uri }] }]
+  const stats = inlineImageDataUriStats(messages)
+  assert.deepEqual(stats, { inlineImageDataUriCount: 2, inlineImageDataUriChars: uri.length * 2 })
+  const request = makeRequest({ messages }, [], undefined, stats)
+  assert.equal(request.diagnostics.inlineImageDataUriCount, 2)
+  assert.equal(request.diagnostics.inlineImageDataUriChars, uri.length * 2)
+  assert.equal(JSON.stringify(request.diagnostics).includes(marker), false)
+  assert.doesNotThrow(() => assertInlineImageDataUriBudget({ inlineImageDataUriChars: MAX_INLINE_IMAGE_DATA_URI_CHARS }))
+  assert.throws(() => assertInlineImageDataUriBudget({ inlineImageDataUriChars: MAX_INLINE_IMAGE_DATA_URI_CHARS + 1 }), error => {
+    assert.equal(error.code, 'IMAGE_DATA_URI_TOO_LARGE')
+    assert.match(error.message, /未提交本轮模型请求/u)
+    assert.equal(error.failure.requestId, undefined)
+    return true
+  })
 })

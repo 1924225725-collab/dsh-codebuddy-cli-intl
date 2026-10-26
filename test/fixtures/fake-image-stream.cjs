@@ -15,6 +15,8 @@ if (mode === 'invalid') {
   init(); process.stdout.write('{broken}\n')
 } else if (mode === 'tail') {
   init(); process.stdout.write('{"type":"result"')
+} else if (mode === 'close-bad-tail') {
+  init(); process.stdout.write('{"type":"result"'); process.exitCode = 7
 } else if (mode === 'overflow') {
   init(); process.stdout.write(`${'x'.repeat(4096)}\n`)
 } else if (mode === 'nonzero') {
@@ -29,6 +31,10 @@ if (mode === 'invalid') {
   init(); emit({ type: 'error', error: 'EPERM: operation not permitted, mkdir PRIVATE_SYNTHETIC_PATH' }); emit(result())
 } else if (mode === 'error-auth') {
   init(); emit({ type: 'error', error: { message: '401 Unauthorized PRIVATE_SYNTHETIC_AUTH' } })
+} else if (mode === 'error-context') {
+  init(); emit({ type: 'error', status: 400, error: { message: 'prompt is too long: 100001 tokens > 100000 maximum PRIVATE_CONTEXT' } }); emit(result())
+} else if (mode === 'error-balance') {
+  init(); emit({ type: 'error', status: 402, error: { message: 'Insufficient Balance PRIVATE_BALANCE' } }); emit(result())
 } else if (mode === 'error-generic') {
   init(); emit({ type: 'error', error: { message: 'PRIVATE_SYNTHETIC_UNKNOWN_ERROR' } })
 } else if (mode === 'error-network') {
@@ -46,6 +52,33 @@ if (mode === 'invalid') {
   setTimeout(() => emit(result({ text: 'late conflict', toolCalls: [] })), 60)
 } else if (mode === 'post-result') {
   init(); emit(result()); emit({ type: 'assistant', message: { content: [{ type: 'text', text: 'unexpected after terminal' }] } })
+} else if (mode === 'duplicate-init') {
+  init(); init(); emit(result())
+} else if (mode === 'result-before-init') {
+  emit(result())
+} else if (mode === 'missing-init') {
+  process.exitCode = 0
+} else if (mode === 'missing-result') {
+  init()
+} else if (mode === 'shape') {
+  process.stdout.write('{"type":7}\n')
+} else if (mode === 'proto-type') {
+  process.stdout.write('{"type":"__proto__"}\n')
+} else if (mode === 'assistant-shape') {
+  init(); emit({ type: 'assistant', message: { content: { type: 'text', text: 'not an array' } } })
+} else if (mode === 'crlf') {
+  process.stdout.write(`${JSON.stringify({ type: 'system', subtype: 'init', model: 'future-alpha' })}\r\n${JSON.stringify(result())}\r\n`)
+} else if (mode === 'tail-valid') {
+  process.stdout.write(`${JSON.stringify({ type: 'system', subtype: 'init', model: 'future-alpha' })}\n${JSON.stringify(result())}`)
+} else if (mode === 'chunked') {
+  const buffer = Buffer.from(`${JSON.stringify({ type: 'system', subtype: 'init', model: 'future-alpha' })}\r\n${JSON.stringify(result())}\r\n`)
+  const firstUtf8Byte = buffer.indexOf(Buffer.from('图'))
+  const cuts = [3, firstUtf8Byte + 1, Math.floor(buffer.length / 2), buffer.length - 2, buffer.length]
+  let start = 0
+  for (const end of [...new Set(cuts)].sort((a, b) => a - b)) {
+    process.stdout.write(buffer.subarray(start, end))
+    start = end
+  }
 } else {
   init()
   const buffer = Buffer.from(`${JSON.stringify(result())}\n`)

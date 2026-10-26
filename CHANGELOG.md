@@ -1,5 +1,25 @@
 # 更新记录 / Changelog
 
+## 0.2.0（2026-10-27，仓库分发 / repository distribution）
+
+本次包含 0.1.9 本地候选的独立账号功能；0.1.9 未单独公开发布。安装包见 [0.2.0](releases/dsh-codebuddy-cli-intl-0.2.0.tgz)。GitHub Releases 中的历史条目保留。
+
+- 图片 JSONL 诊断增加固定流原因、解析阶段、帧序号/字节数、init/result 计数、最近帧类别，以及终止发起方、实际 close 观察与总时限状态。
+- 原生结果仅记录结构化字段存在性及固定类型、result 类型有效性、有限 subtype 类别，以及已知 CLI 提示类别/来源。本机日志持久化、恢复和导出使用白名单，不保存帧正文、stderr 原文或任意字段内容。
+- 图片调用使用中性总时限提示。配置页与日志分别记录用户取消、DSH 图片卸载请求及建议数量；请求不代表 DSH 已完成卸载。未知序列保持原有拒绝边界。
+- 加入 Windows 独立账号环境及官方 International Site 手动登录命令，隔离配置和用户目录，模型 ID 绑定账号环境。独立账号仅支持官方 npm/Node CLI 2.174.0；不自动轮换或回落，移出列表不会删除官方登录文件。
+- 包含明确的上下文超限/余额不足分类与内联图片 data URI 字符预算。本机统计不等同于官方账单。
+- 验证：43 项国际绝对路径定向合成检查通过；账号版本此前完成 96 项自动检查。本次未发起真实国际 CLI 模型请求，未验收实际 DSH UI/业务工具、私人历史、第二账号登录、令牌刷新或扣费归属。增强诊断不证明复现或根除了原始偶发失败。
+
+This upload includes the isolated-account changes from the local 0.1.9 candidate, which has no separate public release.
+
+- Add fixed image-stream diagnostics for parser reasons/stages, frame index/size, init/result counts, last-frame class, termination initiator, observed close and deadline state.
+- Record only native structured-field presence/fixed types, result-type validity, bounded subtype classes and known CLI notice class/source. Local persistence, recovery and export filter through allowlists; raw frames, stderr and arbitrary payloads are excluded.
+- Use a neutral image-call deadline message and separate cancellation/offload-request counters. An offload request is not proof that DSH completed it. Existing protocol refusal boundaries remain in place.
+- Add isolated Windows account environments and generated official International Site sign-in commands. Model IDs stay account-bound. Isolated mode supports official npm/Node CLI 2.174.0 only; no automatic rotation/fallback is provided and removing a list entry preserves official sign-in files.
+- Include explicit context-limit/insufficient-balance classifications and an inline-image URI character budget. Local counters are not official billing.
+- Validation: 43 targeted synthetic checks using international absolute paths passed; the earlier account candidate passed 96 automated checks. This update made no live International CLI model request and did not validate actual DSH UI/business tools, private-history replay, second-account sign-in, refresh or billing attribution. Improved diagnostics do not reproduce or eliminate the original intermittent failures.
+
 ## [0.1.8](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.8)
 
 - 增加 `CLI_NETWORK_ERROR` 固定分类：仅当无有效结果且官方 CLI 错误文本符合已知 ECONNRESET、TLS 连接中断或相关 502 模式时命中；鉴权与本地权限分类优先，未知错误仍保留原通用分类。

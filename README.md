@@ -2,9 +2,18 @@
 
 **简体中文** · [English](README.en.md)
 
-[下载 0.1.8 安装包](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.8/dsh-codebuddy-cli-intl-0.1.8.tgz) · [仓库备用下载](releases/dsh-codebuddy-cli-intl-0.1.8.tgz) · [安装教程](docs/安装教程.md) · [图片输入说明](docs/IMAGE-INPUT.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
+[下载 0.2.0 安装包](https://raw.githubusercontent.com/1924225725-collab/dsh-codebuddy-cli-intl/main/releases/dsh-codebuddy-cli-intl-0.2.0.tgz) · [历史 Releases](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases) · [安装教程](docs/安装教程.md) · [多账号指南](docs/多账号使用指南.md) · [图片输入说明](docs/IMAGE-INPUT.md) · [故障处理指南](docs/使用与故障处理指南.md) · [更新记录](CHANGELOG.md)
+
+> 0.2.0 已上传仓库；独立 Release 条目待补。43 项定向合成检查通过；本版未发起真实国际模型请求。诊断增强不代表所有偶发故障已消除。
 
 在 DeepSeek Harness（DSH）中，使用本机官方 CodeBuddy CLI 的国际站账号可用模型。插件负责转换模型请求和结果，DSH 继续管理对话、权限和工具执行。插件没有中转服务器，也不导入 WorkBuddy 桌面凭据。
+
+## 0.2.0：结构化诊断与独立账号
+
+- 图片流失败会提供固定原因、解析阶段、帧大小和位置、init/result 状态、终止发起方、close 观察状态及总时限状态，帮助区分解析器主动终止与进程自然关闭。
+- 原生结果诊断只记录 `structured_output` 是否存在和固定类型、result 类型有效性、有限 subtype 类别，以及已知 CLI 提示的分类与来源；不保存帧内容、stderr 原文或任意字段名和值。
+- 配置页和本机日志分别统计用户取消、DSH 图片卸载请求及建议卸载图片数；请求不代表 DSH 已完成卸载。诊断数字使用有界整数白名单。
+- 只增强诊断，不放宽 JSONL 事件顺序、唯一 result、原生 Schema、DSH 工具校验或失败边界。没有用户原始帧，原始偶发问题仍待复核。
 
 ## 0.1.8 CLI 网络错误识别
 
@@ -33,7 +42,16 @@
 
 **历史验证范围：**0.1.5 的 77 项合成自动检查通过。2026-10-24 使用实际适配器和国际 CLI 对 deepseek-v4.1-flash 完成文字对照及合成 360×240 六色图片识别，均通过且未执行 DSH 业务工具；gpt-5.6-luna 文字对照返回 `CLI_OUTPUT_INVALID`，没有发送图片。0.1.7 对工具结果图片的验证为合成适配器测试，没有发起新模型请求，也没有验收实际 DSH 工具截图或上传界面。未验证所有模型；实际调用仍需有效的国际版 CLI 登录和所选模型权限。
 
-国际版和[国内版](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn)是独立插件，使用独立提供方 ID、区域入口与 CLI 配置目录。国际版版本号独立：当前为 0.1.8；补丁版本递增至 0.1.9 后，下一版使用 0.2.0，不生成 0.1.10。
+国际版和[国内版](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn)是独立插件，使用独立提供方 ID、区域入口与 CLI 配置目录。国际版版本号独立：最新仓库安装包为 0.2.0；历史正式 Release 为 0.1.8。版本按每段满十进位，不生成 0.1.10。
+
+## 0.2.0 包含的独立账号环境（预览功能）
+
+- 每个账号使用单独的 CLI 配置目录和 Windows 用户目录环境。官方登录由用户在生成的 PowerShell 命令中手动完成，并在官方 CLI 中选择 **International Site**。
+- DSH 中带环境备注的模型会固定绑定该环境；切换设置页当前环境不会改变已有会话的账号。鉴权、网络、余额或权限失败后不会轮换账号或回落到默认登录。
+- 仅支持 Windows + 官方 npm/Node CodeBuddy CLI `2.174.0`。原生 exe、其他系统和未核查 CLI 版本拒绝使用独立账号功能；普通单账号路径保留。
+- 环境统计是 CLI 返回并由插件按环境累计的调用与 Token 数，不是官方账单或余额。可用额度请以官方用量明细为准。
+- 同步增加 400 上下文超限、402 余额不足的固定错误分类，并限制内联图片 data URI 总字符数；不会保存图片正文到日志。
+- 独立账号候选通过 96 项自动检查。没有登录第二账号、发起模型请求或验证官方扣费归属；详见[多账号指南](docs/多账号使用指南.md)。
 
 ## 安装与登录
 

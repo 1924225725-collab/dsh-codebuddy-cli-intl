@@ -2,9 +2,18 @@
 
 [简体中文](README.md) · **English**
 
-[Download 0.1.8](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/download/v0.1.8/dsh-codebuddy-cli-intl-0.1.8.tgz) · [Repository fallback](releases/dsh-codebuddy-cli-intl-0.1.8.tgz) · [Installation](docs/INSTALL.en.md) · [Image input](docs/IMAGE-INPUT.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
+[Download 0.2.0](https://raw.githubusercontent.com/1924225725-collab/dsh-codebuddy-cli-intl/main/releases/dsh-codebuddy-cli-intl-0.2.0.tgz) · [Historical Releases](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases) · [Installation](docs/INSTALL.en.md) · [Account guide](docs/ACCOUNT_GUIDE.en.md) · [Image input](docs/IMAGE-INPUT.en.md) · [Troubleshooting](docs/USER_GUIDE.en.md) · [Changelog](CHANGELOG.md)
+
+> Version 0.2.0 is available from the repository; its separate Release entry is pending. All 43 targeted synthetic checks passed. This update made no live International model request and does not claim to eliminate every intermittent failure.
 
 Use models available to your international account in DeepSeek Harness (DSH) through the official CodeBuddy CLI running locally. The adapter translates model requests and results; DSH continues to manage conversations, permissions and tool execution. It runs no relay server and does not import WorkBuddy desktop credentials.
+
+## 0.2.0: structural diagnostics and isolated accounts
+
+- Image-stream failures now report a fixed reason, parse stage, frame size/index, init/result state, termination initiator, observed close and deadline state.
+- Native-result diagnostics record only whether `structured_output` exists and its fixed type, result-type validity, a bounded subtype class, and the class/source of known CLI notices. No frame body, raw stderr or arbitrary field names/values are logged.
+- Settings and local logs separately count user cancellations, DSH image-offload requests and requested image counts, as well as images already marked offloaded in request history. An offload request does not prove that DSH completed it; diagnostic numbers use bounded integer allowlists.
+- This adds diagnosis without relaxing JSONL order, unique-result handling, native Schema, DSH tool validation or rejection boundaries. The original intermittent failure remains unverified without its raw frame.
 
 ## CLI network error classification in 0.1.8
 
@@ -33,7 +42,16 @@ Use models available to your international account in DeepSeek Harness (DSH) thr
 
 **Historical validation scope:** The 0.1.5 release passed 77 synthetic automated checks. On 2026-10-24, the actual adapter and International CLI passed a text control and synthetic 360x240 six-color image recognition using deepseek-v4.1-flash, with no DSH business tools executed. The gpt-5.6-luna text control returned `CLI_OUTPUT_INVALID`; no image was sent. The 0.1.7 tool-result image route was tested with synthetic adapter fixtures, with no new model request and no acceptance test of actual DSH screenshot tools or upload UI. Not all models were verified. Live calls require valid International CLI sign-in and model access.
 
-International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the current release is 0.1.8. After 0.1.9, the next version will be 0.2.0; there will be no 0.1.10.
+International and [China](https://github.com/1924225725-collab/dsh-codebuddy-cli-cn) are separate plugins, with distinct provider IDs, region routes and CLI configuration directories. Versioning is independent: the latest repository package is 0.2.0; the historical formal Release is 0.1.8. Versions advance at ten; there will be no 0.1.10.
+
+## Isolated account environments included in 0.2.0 (preview feature)
+
+- Each account gets its own CLI configuration directory and Windows user-directory environment. The user completes official sign-in through a generated PowerShell command and selects **International Site** in the CLI.
+- DSH models labelled with an environment stay bound to it when the settings page switches to another environment. Authentication, network, balance or permission failures never rotate accounts or fall back to the default sign-in.
+- Isolated accounts are limited to Windows and the verified official npm/Node CodeBuddy CLI `2.174.0`. Native executables, other operating systems and unverified CLI versions fail closed; the default single-account route remains available.
+- Per-environment figures are CLI-reported calls/tokens accumulated by the plugin, not official billing or balance. Use the official usage details for account charges.
+- Adds fixed classifications for 400 context-limit and 402 insufficient-balance errors, and an aggregate character limit for inline image data URIs. Image content is not written to logs.
+- The isolated-account candidate passed 96 automated checks. No second account was signed in, no model request was made, and billing attribution was not tested. See the [account guide](docs/ACCOUNT_GUIDE.en.md).
 
 ## Install and sign in
 
