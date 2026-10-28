@@ -1,24 +1,64 @@
 # 更新记录 / Changelog
 
-## 0.2.0（2026-10-27，仓库分发 / repository distribution）
+## 0.2.2 仓库目录分发（非正式 Release） / Repository-directory distribution (not a formal Release)
 
-本次包含 0.1.9 本地候选的独立账号功能；0.1.9 未单独公开发布。安装包见 [0.2.0](releases/dsh-codebuddy-cli-intl-0.2.0.tgz)。GitHub Releases 中的历史条目保留。
+- 仅调整请求 JSON 封装键顺序：稳定的 `tools` 与可选 `responseSchema` 移到增长中的 `messages` 之前。所有字段和值、系统提示/提交说明、消息和工具顺序与内容均保持不变；图片索引映射、原生图片块与卸载占位保持一致。
+- 保持文字封装 12 MiB、图片最终 JSONL 输入 24 MiB 上限不变。稳定前缀增大只提供潜在缓存机会，不保证命中、额度节省或延迟改善；未测量真实缓存收益。
+- bug005/006 原始症状及 bug007/008 仍未解决或验收。0.2.1 对 bug006 仅修复失败前缺失尺寸诊断的子问题。
+- 107 项自动检查中 107 项通过，包含 3 项本轮定向检查。没有真实国际模型请求、实际 DSH UI/业务工具验收；不据此声称缓存收益或完整线上链路已验证。
 
-- 图片 JSONL 诊断增加固定流原因、解析阶段、帧序号/字节数、init/result 计数、最近帧类别，以及终止发起方、实际 close 观察与总时限状态。
-- 原生结果仅记录结构化字段存在性及固定类型、result 类型有效性、有限 subtype 类别，以及已知 CLI 提示类别/来源。本机日志持久化、恢复和导出使用白名单，不保存帧正文、stderr 原文或任意字段内容。
-- 图片调用使用中性总时限提示。配置页与日志分别记录用户取消、DSH 图片卸载请求及建议数量；请求不代表 DSH 已完成卸载。未知序列保持原有拒绝边界。
-- 加入 Windows 独立账号环境及官方 International Site 手动登录命令，隔离配置和用户目录，模型 ID 绑定账号环境。独立账号仅支持官方 npm/Node CLI 2.174.0；不自动轮换或回落，移出列表不会删除官方登录文件。
-- 包含明确的上下文超限/余额不足分类与内联图片 data URI 字符预算。本机统计不等同于官方账单。
-- 验证：43 项国际绝对路径定向合成检查通过；账号版本此前完成 96 项自动检查。本次未发起真实国际 CLI 模型请求，未验收实际 DSH UI/业务工具、私人历史、第二账号登录、令牌刷新或扣费归属。增强诊断不证明复现或根除了原始偶发失败。
+## 0.2.2 repository-directory distribution (not a formal Release) — English
 
-This upload includes the isolated-account changes from the local 0.1.9 candidate, which has no separate public release.
+- Reordered only the request JSON envelope keys: stable `tools` and optional `responseSchema` now precede growing `messages`. All fields and values, system/submission text, message/tool order and content remain unchanged. Image-index mapping, native image blocks and offloaded-image placeholders are preserved.
+- Kept the 12 MiB text-envelope and 24 MiB final JSONL image-input limits unchanged. A longer stable prefix only offers a potential cache opportunity; cache hits, credit savings and latency improvements are not guaranteed, and no live cache benefit was measured.
+- The original symptoms for bugs 005/006 and bugs 007/008 remain unresolved or unaccepted. The 0.2.1 change for bug006 only fixed missing size diagnostics before failure.
+- All 107 automated checks passed, including 3 focused checks for this change. No live International model call or actual DSH UI/business-tool acceptance was performed; these checks do not establish cache savings or a fully verified live integration path.
 
-- Add fixed image-stream diagnostics for parser reasons/stages, frame index/size, init/result counts, last-frame class, termination initiator, observed close and deadline state.
-- Record only native structured-field presence/fixed types, result-type validity, bounded subtype classes and known CLI notice class/source. Local persistence, recovery and export filter through allowlists; raw frames, stderr and arbitrary payloads are excluded.
-- Use a neutral image-call deadline message and separate cancellation/offload-request counters. An offload request is not proof that DSH completed it. Existing protocol refusal boundaries remain in place.
-- Add isolated Windows account environments and generated official International Site sign-in commands. Model IDs stay account-bound. Isolated mode supports official npm/Node CLI 2.174.0 only; no automatic rotation/fallback is provided and removing a list entry preserves official sign-in files.
-- Include explicit context-limit/insufficient-balance classifications and an inline-image URI character budget. Local counters are not official billing.
-- Validation: 43 targeted synthetic checks using international absolute paths passed; the earlier account candidate passed 96 automated checks. This update made no live International CLI model request and did not validate actual DSH UI/business tools, private-history replay, second-account sign-in, refresh or billing attribution. Improved diagnostics do not reproduce or eliminate the original intermittent failures.
+## 0.2.1 中间候选（未独立分发，改动并入 0.2.2） / Intermediate candidate (not independently distributed; changes included in 0.2.2)
+
+- 明确区分本轮唯一的原生 `StructuredOutput` 提交、历史 DSH `tool-call` 提案与 DSH 已返回的 `tool` 结果；本轮新 `toolCalls` 是尚未执行的提案。保持现有响应 Schema、唯一最终结果、工具执行归属与图片/账号边界。
+- 文字请求超出原有 12 MiB 封装上限时，先计算并保留精确 UTF-8 尺寸，再在本机拒绝；图片模式继续保留国际版原有 24 MiB 限制，并在 JSONL 与原生图片块完整编码后计量。
+- 固定保存检查阶段、实际字节和上限，并把 Schema、封装开销及最终 CLI 输入尺寸通过本机状态、故障记录和日志白名单展示。旧日志未保存的尺寸不补算；不记录请求正文，不自动删历史、丢图、截断 Schema、切模型或重试。
+- 104 项自动检查全部通过，其中 16 项定向检查覆盖工具轮次提示、12 MiB 与 24 MiB UTF-8 边界、本地拒绝不启动模型进程、配置页、日志隐私及诊断持久化/恢复/导出。未发起真实 CLI 模型请求，也未验收实际 DSH UI 或业务工具。尺寸诊断修复不证明原始超限故障已根治。
+
+## 0.2.1 intermediate candidate (not independently distributed; changes included in 0.2.2) — English
+
+- Clarify the single native `StructuredOutput` submission for the current invocation, historical DSH `tool-call` proposals and DSH-returned `tool` results. New `toolCalls` in the current response remain proposals until DSH executes them. Preserve the response schema, unique-final-result rule, tool ownership, and image/account boundaries.
+- Measure exact UTF-8 size before locally refusing a text envelope over the existing 12 MiB limit. Keep the International plugin's existing 24 MiB image-mode limit and measure after stream-json and native image-block encoding.
+- Persist the fixed check stage, actual byte count and limit; expose schema, envelope overhead and final CLI-input sizes through local status, failures and the diagnostics allowlist. Do not reconstruct missing sizes in older logs or retain request bodies. No automatic history deletion, image dropping, schema truncation, model switching or retry is added.
+- All 104 automated checks pass, including 16 focused checks for tool-turn wording, 12 MiB and 24 MiB UTF-8 boundaries, no model-process start on local refusal, the settings page, privacy and diagnostic persistence/recovery/export. No live CLI model request or actual DSH UI/business-tool acceptance was performed. Better size diagnostics do not establish that the original oversized-request symptom is resolved.
+
+## 0.2.0 仓库目录分发（非正式 Release） / Repository-directory distribution (not a formal Release)
+
+- 为图片 JSONL 通道记录固定流原因、解析阶段、帧序号/字节数、init/result 计数、最近帧类别，以及终止发起方、是否观察到 close 和是否到达总时限。各拒绝路径仍保持原有协议边界；不记录帧正文或任意字段值。
+- 为原生响应记录 `structured_output` 是否存在及固定类型、result 类型是否符合要求、终态 subtype 类别，以及固定 CLI 提示分类和来源。普通日志仅保存白名单字段；持久化、恢复和导出均经过过滤。
+- 图片调用超时时使用中性总时限提示，不推断登录、网络或额度原因。未知 JSONL 序列继续拒绝，不做修复、回退、重试或选取最后结果。
+- 配置页和本机日志分别统计用户取消、DSH 图片卸载请求次数及请求卸载张数，也统计请求历史中已经标记卸载的图片。卸载请求仅表示插件向 DSH 报告所需数量，不证明 DSH 已完成卸载。未观察到的退出码不会补造。
+- 43 项定向自动检查通过，覆盖合成 JSONL、自然关闭时的坏尾帧、原生结果诊断、隐私白名单、取消/卸载计数及直接受影响的账号/图片/配置页回归。均为本地合成夹具；未发起真实 CLI 模型请求、未测试实际 DSH UI 或业务工具，也未重放用户原始会话。本地候选不代表复现了用户原始偶发故障。
+
+## 0.2.0 repository-directory distribution (not a formal Release) — English
+
+- Add fixed diagnostics for image JSONL reason, parse stage, frame index/byte length, init/result counts, last-frame class, termination initiator, observed close and deadline state. Existing protocol refusals remain in place; frame bodies and arbitrary field values are not logged.
+- Record whether native `structured_output` exists and its fixed type, whether the result type is accepted, a bounded terminal-subtype class, and fixed CLI notice class/source. Basic logs use a field allowlist through persistence, recovery and export.
+- Image-call timeouts use a neutral total-deadline message without inferring sign-in, network or credit causes. Unknown JSONL sequences still fail closed; no repair, fallback, retry or last-result selection is added.
+- Settings and local logs separately count user cancellations, DSH image-offload requests and requested image counts, as well as images already marked offloaded in request history. An offload request does not prove that DSH completed it. Unobserved exit codes are never fabricated.
+- All 43 targeted automated checks pass, covering synthetic JSONL, malformed tails during natural close, native-result diagnostics, privacy allowlists, cancellation/offload counters and directly affected account/image/settings regressions. These use local synthetic fixtures; no live CLI model request, actual DSH UI/business tool or private-session replay was performed. This preview does not reproduce the users’ original intermittent failures.
+
+## 0.1.9 本地预览（未发布） / Local preview (unpublished)
+
+- 新增 Windows 独立账号环境：每个环境隔离官方 CLI 配置目录及 HOME、USERPROFILE、LOCALAPPDATA、APPDATA 等用户目录变量；用户通过生成的 PowerShell 命令手动完成 International Site 登录。
+- DSH 模型 ID 固定绑定环境，工具和图片续轮沿用原账号；移除、登录文件缺失、目录/列表损坏和并发锁异常均明确失败，不轮换、不回退默认账号。移出列表不会注销或删除官方登录文件。
+- 独立账号仅支持经核查的官方 npm/Node CLI 2.174.0 和 Windows。未登录第二账号、未发起模型请求，未验证令牌刷新或官方扣费归属；配置页本地统计不等同于官方账单。
+- 增加 400 上下文超限与 402 余额不足固定分类；内联图片 data URI 增加 32,768 字符合计限制，诊断不保留 URI 内容。
+- 96 项自动检查通过，包含账号环境绑定、工具/图片续轮、登录命令脚本准备、版本守卫、敏感凭据隔离及既有图片/结构化输出回归。
+
+## 0.1.9 local preview (unpublished) — English
+
+- Add isolated Windows account environments. Each one separates the official CLI config directory and HOME, USERPROFILE, LOCALAPPDATA, APPDATA and related user-directory variables. The user completes International Site sign-in manually through a generated PowerShell command.
+- DSH model IDs stay bound to their environment, including tool and image follow-ups. Removal, missing sign-in files, invalid directories/lists and lock conflicts fail explicitly; there is no rotation or default-account fallback. Removing a list entry does not sign out or delete official login files.
+- Isolated accounts are limited to Windows and the verified official npm/Node CLI 2.174.0. No second account was signed in and no model request was made; token refresh and official billing attribution remain unverified. Local counters are not official billing.
+- Add fixed 400 context-limit and 402 insufficient-balance classifications. Inline image data URIs have a 32,768-character aggregate limit, and diagnostics do not retain URI content.
+- All 96 automated checks pass, covering account binding, tool/image follow-ups, generated sign-in script preparation, version guard, credential isolation and existing image/structured-output regressions.
 
 ## [0.1.8](https://github.com/1924225725-collab/dsh-codebuddy-cli-intl/releases/tag/v0.1.8)
 

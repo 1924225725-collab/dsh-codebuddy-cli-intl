@@ -55,7 +55,7 @@ test('basic logs use a field allowlist, persist across restarts and exclude raw 
   assert.equal(detailed.entries[0].processDiagnostics.terminationInitiator, 'adapter-error')
   assert.equal(detailed.entries[0].responseDiagnostics.finalSubtypeClass, 'other')
   assert.equal(detailed.entries[1].sample.head, 'PRIVATE_REPLY')
-  assert.equal(detailed.entries[1].pluginVersion, '0.2.0')
+  assert.equal(detailed.entries[1].pluginVersion, '0.2.2')
   assert.equal(detailed.privacy.includesRawReplies, true)
   assert.equal(JSON.stringify(await restored.export()).includes('PRIVATE_REPLY'), false)
 })
@@ -112,6 +112,56 @@ test('event counters and image/process measurements persist only as bounded inte
   assert.equal(entry.processDiagnostics.frameCount, undefined)
   assert.equal(entry.processDiagnostics.frameBytes, undefined)
   assert.equal(entry.processDiagnostics.exitCode, undefined)
+})
+
+test('request size facts use a fixed stage enum and survive local persistence and both exports', async t => {
+  const { directory, store } = await setup(t)
+  const largeDiagnosticBytes = 32 * 1024 * 1024 + 17
+  const diagnostics = {
+    promptBytes: 12 * 1024 * 1024 + 3, systemBytes: 12, messagesBytes: 10_000, toolsBytes: 30,
+    schemaBytes: 88, envelopeOverheadBytes: 900, cliInputBytes: 12 * 1024 * 1024 + 3,
+    requestLimitStage: 'envelope', requestBytes: 12 * 1024 * 1024 + 3, requestLimitBytes: 12 * 1024 * 1024,
+    request: 'PRIVATE_PROMPT', requestLimitStageRaw: 'PRIVATE_STAGE'
+  }
+  await store.record({ ...call, diagnostics })
+  const basic = await store.export()
+  assert.equal(basic.entries[0].diagnostics.requestLimitStage, 'envelope')
+  assert.equal(basic.entries[0].diagnostics.requestBytes, diagnostics.requestBytes)
+  assert.equal(basic.entries[0].diagnostics.requestLimitBytes, diagnostics.requestLimitBytes)
+  assert.equal(basic.entries[0].diagnostics.schemaBytes, 88)
+  assert.equal(basic.entries[0].diagnostics.envelopeOverheadBytes, 900)
+  assert.equal(basic.entries[0].diagnostics.request, undefined)
+  assert.equal(JSON.stringify(basic).includes('PRIVATE_'), false)
+
+  const restored = createDiagnosticsStore({ directory })
+  await restored.ready
+  const detailed = await restored.export(true)
+  assert.equal(detailed.entries[0].diagnostics.requestLimitStage, 'envelope')
+  assert.equal(detailed.entries[0].diagnostics.cliInputBytes, diagnostics.cliInputBytes)
+  assert.equal(detailed.entries[0].diagnostics.request, undefined)
+  await restored.record({ ...call, diagnostics: { requestLimitStage: 'not-a-stage', requestBytes: 4, requestLimitBytes: 5, cliInputBytes: 1e99 } })
+  const invalid = (await restored.export()).entries.at(-1).diagnostics
+  assert.equal(invalid.requestLimitStage, undefined)
+  assert.equal(invalid.requestBytes, 4)
+  assert.equal(invalid.cliInputBytes, undefined)
+
+  await restored.record({ ...call, diagnostics: {
+    requestLimitStage: 'cli-input', requestBytes: largeDiagnosticBytes, requestLimitBytes: 24 * 1024 * 1024,
+    cliInputBytes: largeDiagnosticBytes, streamInputBytes: largeDiagnosticBytes, promptBytes: largeDiagnosticBytes,
+    systemBytes: 2, messagesBytes: 3, toolsBytes: 4, schemaBytes: 5, envelopeOverheadBytes: 6,
+    oversizedUnsafe: 2_147_483_648
+  } })
+  const largeBasic = await restored.export()
+  assert.equal(largeBasic.entries.at(-1).diagnostics.requestBytes, largeDiagnosticBytes)
+  assert.equal(largeBasic.entries.at(-1).diagnostics.cliInputBytes, largeDiagnosticBytes)
+  assert.equal(largeBasic.entries.at(-1).diagnostics.streamInputBytes, largeDiagnosticBytes)
+  assert.equal(largeBasic.entries.at(-1).diagnostics.oversizedUnsafe, undefined)
+  const restarted = createDiagnosticsStore({ directory })
+  await restarted.ready
+  const largeDetailed = await restarted.export(true)
+  assert.equal(largeDetailed.entries.at(-1).diagnostics.requestBytes, largeDiagnosticBytes)
+  assert.equal(largeDetailed.entries.at(-1).diagnostics.cliInputBytes, largeDiagnosticBytes)
+  assert.equal(largeDetailed.entries.at(-1).diagnostics.promptBytes, largeDiagnosticBytes)
 })
 
 test('bounds stored records and raw samples, preserves both ends and serializes concurrent writes', async t => {

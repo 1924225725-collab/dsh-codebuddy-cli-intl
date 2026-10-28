@@ -22,7 +22,7 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
     }
   }
   const status = {
-    pluginVersion: '0.2.0', timeoutMs: 180000,
+    pluginVersion: '0.2.2', timeoutMs: 180000,
     accounts: { supported: true, requiredCliVersion: '2.174.0', selectedId: '13838045-0be0-4d93-9551-786b43f14ed1', accounts: [
       { id: '13838045-0be0-4d93-9551-786b43f14ed1', label: 'Synthetic International', selected: true, credentialsPresent: true, pathError: false, activeCalls: 0,
         usage: { calls: 3, inputTokens: 420, outputTokens: 72, cancelledRequests: 1, imageOffloadRequests: 1, offloadImagesRequested: 2, historyOffloadedImages: 3 }, loginCommand: '' }
@@ -32,7 +32,7 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
     usage: { calls: 12, inputTokens: 170000, outputTokens: 100, uncachedInputTokens: 10000, cacheReadTokens: 150000, cacheWriteTokens: 10000,
       cancelledRequests: 2, imageOffloadRequests: 1, offloadImagesRequested: 2, historyOffloadedImages: 3,
       lastCall: { state: 'success', model: 'future-alpha', at: 1000, inputTokens: 1250, outputTokens: 7, uncachedInputTokens: 100, cacheReadTokens: 1100, cacheWriteTokens: 50, durationMs: 2345,
-        diagnostics: { messageCount: 1, toolCount: 2, promptBytes: 3200, systemBytes: 4, messagesBytes: 100, toolsBytes: 2000 } } }, loginCommand: "& 'C:\\Users\\Another User\\CLI\\codebuddy.cmd'",
+        diagnostics: { messageCount: 1, toolCount: 2, promptBytes: 3200, systemBytes: 4, messagesBytes: 100, toolsBytes: 2000, schemaBytes: 80, envelopeOverheadBytes: 1016, cliInputBytes: 3200 } } }, loginCommand: "& 'C:\\Users\\Another User\\CLI\\codebuddy.cmd'",
     catalog: { state: 'ready', fetchedAt: 1000, models: [{ id: 'future-alpha', name: 'Future Alpha', multiplier: 0.33, credits: 'x0.33 credits', efforts: [{ id: 'high', name: 'High' }], contextWindow: 1000000, supportsImages: true }] }
   }
   const actions = [], accountPayloads = []
@@ -87,7 +87,8 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   assert.ok(text().includes('单次输入（含缓存）1250'))
   assert.ok(text().includes('缓存命中 1100'))
   assert.ok(text().includes('2.35 秒'))
-  assert.ok(text().includes('发送文本 3200 字节'))
+  assert.ok(text().includes('提示封装 3200 UTF-8 字节'))
+  assert.ok(text().includes('响应 Schema 80 / 封装固定指令与结构 1016 / 计算后的 CLI 输入 3200 字节'))
   assert.ok(text().includes('CLI 程序可启动'))
   assert.ok(text().includes('不验证账号登录'))
   assert.ok(text().includes('独立账号环境'))
@@ -104,7 +105,7 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   const guideLink = tree.root.findAllByType('a').find(link => link.children.join('') === '查看完整用户指南')
   assert.ok(guideLink.props.href.endsWith('/docs/使用与故障处理指南.md'))
   assert.equal(guideLink.props.rel, 'noreferrer')
-  assert.ok(text().includes('0.2.0'))
+  assert.ok(text().includes('0.2.2'))
   assert.ok(text().includes('CLI_NETWORK_ERROR'))
   assert.ok(text().includes('不能修复网络'))
   const button = (name) => tree.root.findAllByType('button').find((item) => item.children.join('') === name)
@@ -128,10 +129,13 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   await act(async () => { await button('保存设置').props.onClick() })
   assert.equal(snapshot.value.model, 'custom-future-model')
   status.usage.lastCall = { state: 'error', model: 'future-alpha', at: 2000, errorCode: 'CLI_TIMEOUT', errorMessage: 'fixture timeout details', durationMs: 180005,
+    diagnostics: { promptBytes: 100, schemaBytes: 10, envelopeOverheadBytes: 20, cliInputBytes: 25165827, requestLimitStage: 'cli-input', requestBytes: 25165827, requestLimitBytes: 25165824 },
     processDiagnostics: { timeoutMs: 180000, elapsedMs: 180005, stdoutBytes: 0, stderrBytes: 25, streamReason: 'deadline', streamPhase: 'after-init', parseStage: 'line', frameIndex: 1, frameBytes: 50, frameCount: 1, initCount: 1, resultCount: 0, lastFrameClass: 'system-init', firstFinalSeen: false, terminationInitiator: 'deadline', closeObserved: false, deadlineReached: true } }
   await act(async () => { await button('刷新模型与倍率').props.onClick() })
   assert.ok(text().includes('CLI_TIMEOUT'))
   assert.ok(text().includes('fixture timeout details'))
+  assert.ok(text().includes('本机大小检查：CLI 编码输入 · 25165827 / 25165824 字节'))
+  assert.ok(text().includes('请求在启动 CLI 模型调用前被拒绝，未提交给模型'))
   assert.ok(text().includes('标准输出 0 字节'))
   assert.ok(text().includes('流诊断：达到总时限'))
   status.usage.lastCall = { state: 'success', model: 'future-alpha', at: 3000, inputTokens: 1, outputTokens: 2, responseDiagnostics: { reason: 'valid', outputMode: 'native-json-schema', finalResultCount: 1, inputType: 'object', normalizations: [], hasStructuredOutput: true, structuredOutputType: 'object', resultTypeValid: true, finalSubtypeClass: 'success' } }
@@ -146,6 +150,8 @@ test('settings UI displays live rates, refreshes new models, and saves a portabl
   assert.ok(text().includes('提示分类：鉴权'))
   assert.ok(text().includes('基础诊断不含正文'))
   assert.ok(text().includes('诊断日志与问题反馈'))
+  assert.ok(locales.en.guideRequestSize.includes('24 MiB'))
+  assert.ok(locales.en.budgetDetail.includes('was not submitted to the model'))
   assert.equal(button('采集下一次失败回复').props.disabled, true)
   assert.equal(button('导出详细日志（含原始回复）').props.disabled, true)
   await act(async () => { await button('查看普通日志').props.onClick() })

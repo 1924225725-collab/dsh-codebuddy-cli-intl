@@ -253,7 +253,7 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   const processLog = (await logAction('exportDetailedLogs')).body
   assert.equal(processLog.entries.length, 5)
   assert.equal(processLog.entries[0].errorCode, 'CLI_AUTH_REQUIRED')
-  assert.equal(processLog.entries[0].pluginVersion, '0.2.0')
+  assert.equal(processLog.entries[0].pluginVersion, '0.2.2')
   assert.equal(processLog.entries[0].processDiagnostics.exitCode, 0)
   assert.equal(processLog.entries[0].processDiagnostics.stdoutBytes, 0)
   assert.ok(processLog.entries[0].processDiagnostics.stderrBytes > 0)
@@ -270,6 +270,29 @@ test('DSH integration discovers all models, forwards selected IDs and efforts, s
   assert.equal(pausedStatus.activeCalls, 0, 'a completed CLI call must not remain active while its consumer is paused')
   await paused.return()
   assert.equal((await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/status`)).json()).activeCalls, 0)
+
+  const beforeSizeRefusal = await requestCount()
+  const privateOversizeMarker = 'PRIVATE_OVERSIZE_PROMPT_MARKER'
+  await assert.rejects(async () => {
+    for await (const _chunk of adapter.stream({ model: 'future-alpha', messages: [{ role: 'user', content: `${'A'.repeat(13 * 1024 * 1024)}${privateOversizeMarker}` }] })) {}
+  }, error => {
+    assert.equal(error.code, 'REQUEST_TOO_LARGE')
+    assert.equal(error.requestDiagnostics.requestLimitStage, 'envelope')
+    assert.equal(error.requestDiagnostics.requestBytes, error.requestDiagnostics.promptBytes)
+    assert.equal(error.requestDiagnostics.requestLimitBytes, 12 * 1024 * 1024)
+    assert.ok(error.requestDiagnostics.requestBytes > error.requestDiagnostics.requestLimitBytes)
+    return true
+  })
+  assert.equal(await requestCount(), beforeSizeRefusal, 'local size refusal must not start a model CLI process')
+  const sizeRefusalStatus = await (await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/status`)).json()
+  assert.equal(sizeRefusalStatus.usage.lastCall.diagnostics.requestLimitStage, 'envelope')
+  assert.equal(sizeRefusalStatus.usage.lastCall.diagnostics.requestBytes, sizeRefusalStatus.usage.lastCall.diagnostics.promptBytes)
+  assert.equal(sizeRefusalStatus.usage.recentFailures[0].diagnostics.requestLimitBytes, 12 * 1024 * 1024)
+  const sizeRefusalLog = (await logAction('exportLogs')).body
+  const sizeRefusalEntry = sizeRefusalLog.entries.find(entry => entry.id === sizeRefusalStatus.usage.lastCall.id)
+  assert.equal(sizeRefusalEntry.diagnostics.requestLimitStage, 'envelope')
+  assert.equal(sizeRefusalEntry.diagnostics.requestBytes, sizeRefusalStatus.usage.lastCall.diagnostics.requestBytes)
+  assert.equal(JSON.stringify(sizeRefusalLog).includes(privateOversizeMarker), false)
 
   const denied = await fetch(`${origin}/plugins/dsh-codebuddy-cli-intl/actions`, {
     method: 'POST', headers: { Origin: 'https://other.example', 'Content-Type': 'application/json', 'X-DSH-CodeBuddy-Action': '1' }, body: JSON.stringify({ action: 'setup' })
